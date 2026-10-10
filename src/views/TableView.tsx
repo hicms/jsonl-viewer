@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { memo, useCallback, useMemo, useState } from 'react';
 import {
   Table,
@@ -27,6 +28,7 @@ export const TableView = memo(function TableView({
   lines: Line[];
   onSelect: (index: number) => void;
 }) {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [widths, setWidths] = usePreference<Record<string, number>>('columnWidths', {});
   const [hidden, setHidden] = usePreference<string[]>('hiddenColumns', []);
@@ -64,13 +66,13 @@ export const TableView = memo(function TableView({
         !line.parseError &&
         (line.value === null || typeof line.value !== 'object' || Array.isArray(line.value)),
     )
-      ? [{ id: 'internal:value', label: '值', key: null }]
+      ? [{ id: 'internal:value', label: t('value'), key: null }]
       : []),
   ];
   const columns: TableColumn<Row>[] = [
     {
       key: 'internal:line',
-      header: '行',
+      header: t('line'),
       width: pixel(72),
       renderCell: (row) => (
         <Text color="secondary" hasTabularNumbers>
@@ -84,7 +86,7 @@ export const TableView = memo(function TableView({
       width: pixel(52),
       renderCell: (row) => (
         <IconButton
-          label={`查看第 ${row.index + 1} 行`}
+          label={t('inspectLine', { line: row.index + 1 })}
           icon={<Eye size={16} />}
           variant="ghost"
           onClick={() => onSelect(row.index)}
@@ -99,7 +101,7 @@ export const TableView = memo(function TableView({
       renderCell: (row: Row) =>
         row.parseError ? (
           field.id === fields[0]?.id ? (
-            <Badge label="JSON 错误" variant="error" />
+            <Badge label={t('jsonError')} variant="error" />
           ) : null
         ) : (
           <Text type="code">
@@ -109,6 +111,7 @@ export const TableView = memo(function TableView({
                 : row.value && typeof row.value === 'object' && !Array.isArray(row.value)
                   ? row.value[field.key]
                   : null,
+              t,
             )}
           </Text>
         ),
@@ -121,8 +124,8 @@ export const TableView = memo(function TableView({
   });
   const settings = useTableColumnSettings<Row>({
     columns: [
-      { key: 'internal:line', label: '行', isAlwaysVisible: true },
-      { key: 'internal:inspect', label: '查看', isAlwaysVisible: true },
+      { key: 'internal:line', label: t('line'), isAlwaysVisible: true },
+      { key: 'internal:inspect', label: t('inspect'), isAlwaysVisible: true },
       ...fields.map((field) => ({ key: field.id, label: field.label })),
     ],
     activeColumnKeys: [
@@ -183,7 +186,7 @@ export const TableView = memo(function TableView({
         onChange={setPage}
         totalItems={lines.length}
         pageSize={100}
-        label="已加载记录分页"
+        label={t('tablePagination')}
       />
     </div>
   );

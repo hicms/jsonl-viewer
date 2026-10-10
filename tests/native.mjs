@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyInspector } from './inspector-native.mjs';
+import { verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const exe = process.env.JSONL_QA_EXE ?? path.join(root, 'src-tauri/target/debug/jsonl-viewer.exe');
@@ -99,6 +100,8 @@ try {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await expect(page.getByRole('heading', { name: 'logs.jsonl', exact: true })).toBeVisible();
+  await verifyAutomaticLanguage(page);
+  checks.push('fresh WebView2 profile selects the system language without persisting an override');
   expect(await page.title()).toBe('JSONL Viewer');
   expect(page.url()).toContain('tauri.localhost');
   await expect(page.getByRole('table')).toBeVisible();
@@ -569,7 +572,27 @@ try {
     'overlay inspector keeps main layout; half viewport capped at 960px, full height at all zooms; single scrolling body, real edit/save and invalid draft retention',
   );
   expect(errors).toEqual([]);
+  await verifyLanguages({
+    page,
+    directory,
+    artifacts,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    'English/Chinese live switching, preserved pagination/expansion/unfinished draft, real 6001-record complete-file save with untouched CRLF/blank lines, persisted preferences and System reset',
+  );
+  expect(errors).toEqual([]);
   console.log(JSON.stringify({ passed: checks, runtimeErrors: errors, artifacts }, null, 2));
+} catch (error) {
+  if (browser)
+    await browser
+      .contexts()[0]
+      .pages()[0]
+      .screenshot({ path: path.join(artifacts, 'native-failure.png') });
+  throw error;
 } finally {
   if (processHandle.exitCode === null)
     execFileSync('taskkill', ['/PID', String(processHandle.pid), '/T', '/F'], {

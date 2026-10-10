@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChatMessage, ChatMessageBubble, ChatToolCalls } from '@astryxdesign/core/Chat';
 import { Collapsible } from '@astryxdesign/core/Collapsible';
@@ -12,15 +13,22 @@ import { ArrowDown, ArrowUp } from 'lucide-react';
 import type { FileUi, Trace, TraceBlock } from '../lib/types';
 import { stringify } from '../lib/preferences';
 
+const eventLabels = {
+  error: 'eventError',
+  turn_aborted: 'turnAborted',
+  compacted: 'contextCompacted',
+} as const;
+
 function Block({ block, expanded }: { block: TraceBlock; expanded: boolean }) {
+  const { t } = useI18n();
   switch (block.kind) {
     case 'text':
       return <Markdown>{block.text ?? ''}</Markdown>;
     case 'thinking':
       return (
-        <Collapsible trigger="思考过程" defaultIsOpen={expanded}>
+        <Collapsible trigger={t('thinking')} defaultIsOpen={expanded}>
           <Text color="secondary" className="preserve-lines">
-            {block.text}
+            {block.redacted ? t('redactedThinking') : block.text}
           </Text>
         </Collapsible>
       );
@@ -38,19 +46,19 @@ function Block({ block, expanded }: { block: TraceBlock; expanded: boolean }) {
                   <CodeBlock
                     code={stringify(block.input, true)}
                     language="json"
-                    title="输入"
+                    title={t('input')}
                     isWrapped
                     maxHeight={320}
                   />
                   {block.result ? (
                     <CodeBlock
                       code={stringify(block.result.output, true)}
-                      title="结果"
+                      title={t('result')}
                       isWrapped
                       maxHeight={400}
                     />
                   ) : (
-                    <Text color="secondary">等待结果</Text>
+                    <Text color="secondary">{t('waitingResult')}</Text>
                   )}
                 </Stack>
               ),
@@ -59,16 +67,16 @@ function Block({ block, expanded }: { block: TraceBlock; expanded: boolean }) {
         />
       );
     case 'tool-result':
-      return <CodeBlock code={stringify(block.output, true)} title="工具结果" isWrapped />;
+      return <CodeBlock code={stringify(block.output, true)} title={t('toolResult')} isWrapped />;
     case 'image':
       return block.data && block.mimeType?.startsWith('image/') ? (
         <img
-          alt="会话图片"
+          alt={t('sessionImage')}
           className="trace-image"
           src={`data:${block.mimeType};base64,${block.data}`}
         />
       ) : (
-        <Text color="secondary">图片内容未记录</Text>
+        <Text color="secondary">{t('missingImage')}</Text>
       );
   }
 }
@@ -84,15 +92,27 @@ export function TraceView({
   onUi: (patch: Partial<FileUi>) => void;
   onRelated: (id: string) => void | Promise<void>;
 }) {
+  const { t, locale } = useI18n();
   const scroll = useRef<HTMLDivElement>(null);
   const jumping = useRef(false);
   const [current, setCurrent] = useState(0);
   const items = useMemo(() => {
     const filtered = trace.items.filter((item) =>
-      item.searchText.includes(ui.filter.toLowerCase()),
+      (
+        item.searchText +
+        '\n' +
+        (item.eventType ? t(eventLabels[item.eventType]) : '') +
+        '\n' +
+        item.blocks
+          .filter((block) => block.redacted)
+          .map(() => t('redactedThinking'))
+          .join('\n')
+      )
+        .toLowerCase()
+        .includes(ui.filter.toLowerCase()),
     );
     return ui.order === 'newest' ? [...filtered].reverse() : filtered;
-  }, [trace.items, ui.filter, ui.order]);
+  }, [trace.items, ui.filter, ui.order, t]);
   const messages = items.filter((item) => item.kind === 'user' || item.kind === 'assistant');
   useEffect(() => {
     if (!ui.live) return;
@@ -149,18 +169,25 @@ export function TraceView({
         <Stack padding={6} gap={5} className={ui.wide ? 'trace-wide' : 'trace-compact'}>
           <Stack gap={2}>
             <Stack direction="horizontal" gap={2} align="center">
-              <Text weight="semibold">{trace.title}</Text>
-              {ui.live ? <Badge label="LIVE" variant="success" /> : null}
+              <Text weight="semibold">
+                {trace.title ?? t('sessionTitle', { harness: trace.harness })}
+              </Text>
+              {ui.live ? <Badge label={t('live')} variant="success" /> : null}
               {trace.traceType !== 'unknown' ? (
-                <Badge label={trace.traceType === 'subagent' ? '子会话' : '主会话'} />
+                <Badge
+                  label={trace.traceType === 'subagent' ? t('childSessions') : t('mainSession')}
+                />
               ) : null}
             </Stack>
             <Text color="secondary">
               {trace.model ?? trace.harness}
-              {trace.reasoningEffort ? ` · ${trace.reasoningEffort}` : ''} · {trace.stats.messages}{' '}
-              条消息 · {trace.stats.toolCalls} 次工具调用 ·{' '}
-              {trace.stats.inputTokens.toLocaleString()} /{' '}
-              {trace.stats.outputTokens.toLocaleString()} tokens
+              {trace.reasoningEffort ? ` · ${trace.reasoningEffort}` : ''} ·{' '}
+              {t('sessionStats', {
+                messages: trace.stats.messages,
+                calls: trace.stats.toolCalls,
+                input: trace.stats.inputTokens,
+                output: trace.stats.outputTokens,
+              })}
             </Text>
             {trace.cwd ? (
               <Text type="code" color="secondary">
@@ -169,7 +196,7 @@ export function TraceView({
             ) : null}
             {trace.parentThreadId ? (
               <Button
-                label={`父会话 ${trace.parentThreadId.slice(0, 12)}`}
+                label={t('parentSession', { id: trace.parentThreadId.slice(0, 12) })}
                 variant="ghost"
                 onClick={() => onRelated(trace.parentThreadId!)}
               />
@@ -181,55 +208,66 @@ export function TraceView({
               </Text>
             ) : null}
           </Stack>
-          {items.map((item) => (
-            <div
-              key={`${item.sourceLine}/${item.kind}`}
-              data-line={item.sourceLine}
-              data-message={item.kind === 'user' || item.kind === 'assistant'}
-              className="trace-entry"
-            >
-              <ChatMessage
-                sender={
-                  item.kind === 'user' ? 'user' : item.kind === 'assistant' ? 'assistant' : 'system'
-                }
-                name={
-                  item.kind === 'user'
-                    ? '你'
-                    : item.kind === 'assistant'
-                      ? trace.harness
-                      : (item.label ?? '事件')
-                }
-                metadata={
-                  <Text color="secondary">
-                    {item.timestamp
-                      ? new Date(item.timestamp).toLocaleTimeString('zh-CN')
-                      : `第 ${item.sourceLine + 1} 行`}
-                    {item.effort ? ` · ${item.effort}` : ''}
-                  </Text>
-                }
+          {items.map((item) => {
+            const name =
+              item.kind === 'user'
+                ? t('you')
+                : item.kind === 'assistant'
+                  ? trace.harness
+                  : item.eventType
+                    ? t(eventLabels[item.eventType])
+                    : (item.label ?? t('event'));
+            return (
+              <div
+                key={`${item.sourceLine}/${item.kind}`}
+                data-line={item.sourceLine}
+                data-message={item.kind === 'user' || item.kind === 'assistant'}
+                className="trace-entry"
               >
-                <ChatMessageBubble variant={item.kind === 'user' ? 'filled' : 'ghost'}>
-                  <Stack gap={3}>
-                    {item.blocks.map((block, i) => (
-                      <Block key={`${ui.expanded}/${i}`} block={block} expanded={ui.expanded} />
-                    ))}
-                  </Stack>
-                </ChatMessageBubble>
-              </ChatMessage>
-            </div>
-          ))}
+                <ChatMessage
+                  sender={
+                    item.kind === 'user'
+                      ? 'user'
+                      : item.kind === 'assistant'
+                        ? 'assistant'
+                        : 'system'
+                  }
+                  name={name}
+                  metadata={
+                    <Text color="secondary">
+                      {item.timestamp
+                        ? new Date(item.timestamp).toLocaleTimeString(locale)
+                        : t('lineNumber', { line: item.sourceLine + 1 })}
+                      {item.effort ? ` · ${item.effort}` : ''}
+                    </Text>
+                  }
+                >
+                  <ChatMessageBubble variant={item.kind === 'user' ? 'filled' : 'ghost'}>
+                    <Stack gap={3}>
+                      {item.kind !== 'user' && item.kind !== 'assistant' ? (
+                        <Text weight="semibold">{name}</Text>
+                      ) : null}
+                      {item.blocks.map((block, i) => (
+                        <Block key={`${ui.expanded}/${i}`} block={block} expanded={ui.expanded} />
+                      ))}
+                    </Stack>
+                  </ChatMessageBubble>
+                </ChatMessage>
+              </div>
+            );
+          })}
         </Stack>
       </div>
       <div className="trace-navigation">
         <Stack direction="horizontal" gap={2} align="center">
           {!ui.follow ? (
             <Button
-              label={ui.pending ? `${ui.pending} 条新记录 · 跟随最新` : '跟随最新'}
+              label={ui.pending ? t('newRecords', { count: ui.pending }) : t('followLatest')}
               onClick={() => onUi({ follow: true, pending: 0 })}
             />
           ) : null}
           <IconButton
-            label="上一条消息"
+            label={t('previousMessage')}
             icon={<ArrowUp size={16} />}
             isDisabled={current <= 0}
             onClick={() => navigate(-1)}
@@ -238,7 +276,7 @@ export function TraceView({
             {messages.length ? current + 1 : 0} / {messages.length}
           </Text>
           <IconButton
-            label="下一条消息"
+            label={t('nextMessage')}
             icon={<ArrowDown size={16} />}
             isDisabled={current >= messages.length - 1}
             onClick={() => navigate(1)}

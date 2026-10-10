@@ -84,11 +84,7 @@ pub fn normalize(lines: &[Line]) -> Value {
                 }
                 if matches!(kind, "error" | "turn_aborted") {
                     let mut event = item(line, "event", "system");
-                    event["label"] = json!(if kind == "error" {
-                        "Error"
-                    } else {
-                        "Turn aborted"
-                    });
+                    event["eventType"] = json!(kind);
                     push_text(
                         &mut event,
                         &pick(p, &["message", "reason"]),
@@ -105,7 +101,7 @@ pub fn normalize(lines: &[Line]) -> Value {
             "response_item" => {}
             "compacted" => {
                 let mut event = item(line, "event", "system");
-                event["label"] = json!("Context compacted");
+                event["eventType"] = json!("compacted");
                 push_text(&mut event, &pick(p, &["message"]), line.index, "text");
                 items.push(event);
                 continue;

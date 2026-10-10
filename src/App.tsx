@@ -1,3 +1,4 @@
+import { useI18n } from './i18n';
 import {
   lazy,
   Suspense,
@@ -24,6 +25,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { ToastViewport } from '@astryxdesign/core/Toast';
 import { FileJson, FolderOpen, MessagesSquare, X, Minus, Plus } from 'lucide-react';
+import appLogo from '../src-tauri/icons/icon.svg';
 import { Explorer } from './components/Explorer';
 import { FileToolbar } from './components/FileToolbar';
 import { TableView } from './views/TableView';
@@ -64,6 +66,7 @@ function Application({
   mode: string;
   setMode: (value: 'light' | 'dark' | 'system') => void;
 }) {
+  const { t, locale } = useI18n();
   const workspace = useWorkspace();
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [zoom, setZoom] = usePreference('zoom', 1);
@@ -72,6 +75,21 @@ function Application({
   const folderAction = useRef<() => Promise<void>>(async () => {});
   const workspaceRef = useRef(workspace);
   workspaceRef.current = workspace;
+  const menuUpdates = useRef(Promise.resolve());
+  useEffect(() => {
+    if (!isNative) return;
+    let cancelled = false;
+    menuUpdates.current = menuUpdates.current
+      .then(() => {
+        if (!cancelled) return api.locale(locale);
+      })
+      .catch((error) => {
+        workspaceRef.current.report(error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
   const active = workspace.active;
   const lines = useMemo(
     () => (active ? visibleLines(active) : []),
@@ -181,7 +199,7 @@ function Application({
     else {
       const file = siblings.find((entry) => entry.trace?.id === id);
       if (file) await workspace.open(file.path);
-      else workspace.report(`当前目录中未找到会话 ${id}`);
+      else workspace.report(t('sessionNotFound', { id }));
     }
   }
   const activeIndex = workspace.state.sessions.findIndex(
@@ -195,18 +213,23 @@ function Application({
         style={{ height: `calc(100dvh / ${zoom})` }}
         topNav={
           <TopNav
-            label="应用操作"
-            heading={<TopNavHeading heading="JSONL Viewer" logo={<FileJson size={22} />} />}
+            label={t('applicationActions')}
+            heading={
+              <TopNavHeading
+                heading="JSONL Viewer"
+                logo={<img src={appLogo} width={24} height={24} alt="" />}
+              />
+            }
             endContent={
               <Stack direction="horizontal" gap={2} align="center">
                 <Button
-                  label="打开文件"
+                  label={t('openFile')}
                   icon={<FileJson size={16} />}
                   variant="primary"
                   onClick={() => void workspace.open()}
                 />
                 <MoreMenu
-                  label="最近文件"
+                  label={t('recentFiles')}
                   items={
                     workspace.recent.length
                       ? [
@@ -215,25 +238,25 @@ function Application({
                             description: path,
                             onClick: () => void workspace.open(path),
                           })),
-                          { label: '清空历史', onClick: () => workspace.setRecent([]) },
+                          { label: t('clearHistory'), onClick: () => workspace.setRecent([]) },
                         ]
-                      : [{ label: '暂无最近文件', isDisabled: true }]
+                      : [{ label: t('noRecentFiles'), isDisabled: true }]
                   }
                 />
                 <Selector
-                  label="主题模式"
+                  label={t('themeMode')}
                   isLabelHidden
                   value={mode}
                   onChange={(value) => setMode(value as 'light' | 'dark' | 'system')}
                   options={[
-                    { value: 'light', label: '浅色' },
-                    { value: 'dark', label: '深色' },
-                    { value: 'system', label: '跟随系统' },
+                    { value: 'light', label: t('light') },
+                    { value: 'dark', label: t('dark') },
+                    { value: 'system', label: t('system') },
                   ]}
                   width={112}
                 />
                 <IconButton
-                  label="缩小"
+                  label={t('zoomOut')}
                   icon={<Minus size={15} />}
                   variant="ghost"
                   isDisabled={zoom <= 0.8}
@@ -245,7 +268,7 @@ function Application({
                   onClick={() => setZoom(1)}
                 />
                 <IconButton
-                  label="放大"
+                  label={t('zoomIn')}
                   icon={<Plus size={15} />}
                   variant="ghost"
                   isDisabled={zoom >= 1.5}
@@ -273,7 +296,7 @@ function Application({
                 value={workspace.state.activeId ?? ''}
                 onChange={(id) => workspace.dispatch({ type: 'activate', id })}
                 hasDivider
-                aria-label="打开的文件"
+                aria-label={t('openFiles')}
                 className="tabs-grow"
               >
                 {workspace.state.sessions.map((session) => (
@@ -285,7 +308,7 @@ function Application({
                       endContent={<span className="file-tab-action-space" aria-hidden="true" />}
                     />
                     <IconButton
-                      label={`关闭 ${session.snapshot.name}`}
+                      label={t('closeFile', { name: session.snapshot.name })}
                       icon={<X size={14} />}
                       variant="ghost"
                       size="sm"
@@ -296,10 +319,10 @@ function Application({
                 ))}
               </TabList>
               <MoreMenu
-                label="关闭文件操作"
+                label={t('closeActions')}
                 items={[
                   {
-                    label: '关闭其他文件',
+                    label: t('closeOthers'),
                     onClick: () =>
                       requestClose(
                         workspace.state.sessions
@@ -308,14 +331,14 @@ function Application({
                       ),
                   },
                   {
-                    label: '关闭右侧文件',
+                    label: t('closeRight'),
                     onClick: () =>
                       requestClose(
                         workspace.state.sessions.slice(activeIndex + 1).map((s) => s.snapshot.id),
                       ),
                   },
                   {
-                    label: '关闭全部文件',
+                    label: t('closeAll'),
                     onClick: () => requestClose(workspace.state.sessions.map((s) => s.snapshot.id)),
                   },
                 ]}
@@ -337,9 +360,7 @@ function Application({
                     {active.snapshot.path}
                   </Text>
                 </Stack>
-                {active.ui.changed ? (
-                  <Text color="secondary">磁盘内容已变化，编辑保留中</Text>
-                ) : null}
+                {active.ui.changed ? <Text color="secondary">{t('diskChanged')}</Text> : null}
               </Stack>
               <FileToolbar session={active} workspace={workspace} />
               {active.ui.view === 'trace' &&
@@ -353,7 +374,7 @@ function Application({
                   gap={2}
                   wrap="wrap"
                 >
-                  <Text color="secondary">子会话</Text>
+                  <Text color="secondary">{t('childSessions')}</Text>
                   {siblings
                     .filter((entry) => entry.trace?.parentThreadId === active.snapshot.trace?.id)
                     .map((entry) => (
@@ -394,45 +415,47 @@ function Application({
                 className="status-bar"
               >
                 <Text color="secondary">
-                  {bytes(active.snapshot.sizeBytes)} · 已加载{' '}
-                  {active.snapshot.lines.length.toLocaleString()} 条 · 文件共{' '}
-                  {active.snapshot.totalLines.toLocaleString()} 行
+                  {t('fileStatus', {
+                    size: bytes(active.snapshot.sizeBytes),
+                    loaded: active.snapshot.lines.length,
+                    total: active.snapshot.totalLines,
+                  })}
                   {lines.some((l) => l.parseError)
-                    ? ` · ${lines.filter((l) => l.parseError).length} 个 JSON 错误`
+                    ? t('jsonErrorCount', { count: lines.filter((l) => l.parseError).length })
                     : ''}
                 </Text>
                 {active.snapshot.hasMore ? (
                   <Button
-                    label="加载更多"
+                    label={t('loadMore')}
                     isLoading={active.busy}
                     onClick={() => void workspace.request(active.snapshot.id, 'page')}
                   />
                 ) : (
-                  <Text color="secondary">已读到文件末尾</Text>
+                  <Text color="secondary">{t('endOfFile')}</Text>
                 )}
               </Stack>
             </>
           ) : (
             <div className="empty-workspace">
               <EmptyState
-                title="打开你的 JSONL 文件"
-                description="逐行查看结构化数据，或阅读 Agent 的完整会话。"
-                icon={<FileJson size={32} />}
+                title={t('welcomeTitle')}
+                description={t('welcomeDescription')}
+                icon={<img src={appLogo} width={40} height={40} alt="" />}
                 actions={
                   <Stack direction="horizontal" gap={2}>
                     <Button
-                      label="打开文件"
+                      label={t('openFile')}
                       icon={<FileJson size={16} />}
                       variant="primary"
                       onClick={() => void workspace.open()}
                     />
                     <Button
-                      label="打开文件夹"
+                      label={t('openFolder')}
                       icon={<FolderOpen size={16} />}
                       onClick={() => void folderAction.current()}
                     />
                     <Button
-                      label="Agent 会话"
+                      label={t('agentSessions')}
                       icon={<MessagesSquare size={16} />}
                       onClick={() => setSourcesOpen(true)}
                     />
@@ -440,8 +463,8 @@ function Application({
                 }
               />
               <Text color="secondary">
-                支持 .jsonl · .ndjson · .json · .log · .txt
-                {isNative ? ' · 可将文件拖到窗口' : ' · 请使用桌面应用打开本地文件'}
+                {t('supportedFiles')}
+                {isNative ? t('dropHint') : t('desktopHint')}
               </Text>
             </div>
           )}
@@ -477,12 +500,12 @@ function Application({
         }}
       >
         <Stack gap={4}>
-          <DialogHeader title="放弃未保存的修改？" />
-          <Text>所选文件中有未保存的修改。关闭后这些修改会丢失。</Text>
+          <DialogHeader title={t('discardTitle')} />
+          <Text>{t('discardDescription')}</Text>
           <Stack direction="horizontal" justify="end" gap={2}>
-            <Button label="继续编辑" onClick={() => setCloseIntent(null)} />
+            <Button label={t('continueEditing')} onClick={() => setCloseIntent(null)} />
             <Button
-              label="放弃并关闭"
+              label={t('discardAndClose')}
               variant="primary"
               onClick={() => {
                 const intent = closeIntent!;

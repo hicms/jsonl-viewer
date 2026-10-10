@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { useEffect, useState } from 'react';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Stack } from '@astryxdesign/core/Stack';
@@ -21,6 +22,7 @@ export function SourceDialog({
   onOpen: (path: string) => void;
   report: (error: unknown) => void;
 }) {
+  const { t, locale } = useI18n();
   const [sources, setSources] = useState<Source[]>([]);
   const [tab, setTab] = useState('codex');
   const [loading, setLoading] = useState(false);
@@ -52,8 +54,8 @@ export function SourceDialog({
     >
       <Stack gap={4}>
         <DialogHeader
-          title="Agent 会话"
-          subtitle="打开本地会话记录，持续跟随最新内容"
+          title={t('agentSessions')}
+          subtitle={t('sourceDescription')}
           onOpenChange={() => onClose()}
         />
         <TabList value={tab} onChange={setTab}>
@@ -79,9 +81,11 @@ export function SourceDialog({
                 }}
                 endContent={
                   Date.now() - file.modified < 120000 ? (
-                    <Badge label="LIVE" variant="success" />
+                    <Badge label={t('live')} variant="success" />
                   ) : (
-                    <Text color="secondary">{new Date(file.modified).toLocaleDateString()}</Text>
+                    <Text color="secondary">
+                      {new Date(file.modified).toLocaleDateString(locale)}
+                    </Text>
                   )
                 }
               />
@@ -89,10 +93,8 @@ export function SourceDialog({
           </Stack>
         ) : (
           <EmptyState
-            title="没有找到会话"
-            description={
-              source?.exists ? source.path : '该来源的会话目录不存在。可直接打开 JSONL 文件。'
-            }
+            title={t('noSessions')}
+            description={source?.exists ? source.path : t('missingSource')}
             isCompact
           />
         )}

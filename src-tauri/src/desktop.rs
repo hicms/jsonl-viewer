@@ -8,10 +8,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tauri::{
-    menu::{Menu, MenuItem, Submenu},
-    Emitter, Manager, State,
-};
+use tauri::{Emitter, Manager, State};
 
 #[derive(Clone, Default)]
 struct AppState {
@@ -136,7 +133,7 @@ async fn trace_sources() -> Result<Vec<Source>, CommandError> {
     work(|| {
         let home = std::env::var_os("USERPROFILE")
             .or_else(|| std::env::var_os("HOME"))
-            .ok_or_else(|| Error::Invalid("无法定位用户目录".into()))?;
+            .ok_or(Error::HomeUnavailable)?;
         discovery::sources(&PathBuf::from(home))
     })
     .await
@@ -154,45 +151,10 @@ fn paths(args: impl IntoIterator<Item = String>) -> Vec<String> {
         .collect()
 }
 
-fn menu(app: &tauri::App) -> tauri::Result<()> {
-    let handle = app.handle();
-    let file = Submenu::with_id(handle, "file", "文件", true)?;
-    for (id, label, shortcut) in [
-        ("open", "打开文件…", Some("CmdOrCtrl+O")),
-        ("folder", "打开文件夹…", Some("CmdOrCtrl+Shift+O")),
-        ("sources", "会话来源…", None),
-        ("recent", "最近文件…", None),
-        ("save", "保存", Some("CmdOrCtrl+S")),
-        ("save-as", "另存为…", Some("CmdOrCtrl+Shift+S")),
-        ("close", "关闭文件", Some("CmdOrCtrl+W")),
-        ("close-all", "关闭全部文件", None),
-        ("quit", "退出", Some("CmdOrCtrl+Q")),
-    ] {
-        file.append(&MenuItem::with_id(handle, id, label, true, shortcut)?)?;
-    }
-    let view = Submenu::with_id(handle, "view", "视图", true)?;
-    for (id, label, shortcut) in [
-        ("table", "表格", Some("CmdOrCtrl+1")),
-        ("tree", "树形", Some("CmdOrCtrl+2")),
-        ("raw", "原文", Some("CmdOrCtrl+3")),
-        ("trace", "会话", Some("CmdOrCtrl+4")),
-        ("theme", "切换亮暗模式", Some("CmdOrCtrl+Shift+T")),
-        ("zoom-in", "放大", Some("CmdOrCtrl+=")),
-        ("zoom-out", "缩小", Some("CmdOrCtrl+-")),
-        ("zoom-reset", "重置缩放", Some("CmdOrCtrl+0")),
-    ] {
-        view.append(&MenuItem::with_id(handle, id, label, true, shortcut)?)?;
-    }
-    let edit = Submenu::with_id(handle, "edit", "编辑", true)?;
-    edit.append(&MenuItem::with_id(
-        handle,
-        "copy-json",
-        "复制选中 JSON",
-        true,
-        Some("CmdOrCtrl+Shift+C"),
-    )?)?;
-    app.set_menu(Menu::with_items(handle, &[&file, &edit, &view])?)?;
-    Ok(())
+#[tauri::command]
+fn set_locale(app: tauri::AppHandle, locale: String) -> Result<(), CommandError> {
+    crate::menus::set_locale(&app, &locale)
+        .map_err(|error| CommandError::from(Error::Invalid(error.to_string())))
 }
 
 pub fn run() {
@@ -215,11 +177,11 @@ pub fn run() {
             choose_folder,
             list_dir,
             trace_sources,
-            startup_files
+            startup_files,
+            set_locale
         ])
         .setup(|app| {
-            menu(app)?;
-            app.hide_menu()?;
+            crate::menus::install(app.handle())?;
             let handle = app.handle().clone();
             let documents = app.state::<AppState>().documents.clone();
             std::thread::spawn(move || loop {

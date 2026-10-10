@@ -1,5 +1,6 @@
+import { render } from './render';
 import { it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { Theme } from '@astryxdesign/core/theme';
 import { neutralTheme } from '@astryxdesign/theme-neutral/built';
 import { Inspector } from '../src/views/Inspector';

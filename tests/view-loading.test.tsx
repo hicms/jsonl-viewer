@@ -1,6 +1,7 @@
+import { render } from './render';
 import { StrictMode, lazy, useEffect } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { DeferredView } from '../src/components/DeferredView';
 
 let frames: Map<number, FrameRequestCallback>;

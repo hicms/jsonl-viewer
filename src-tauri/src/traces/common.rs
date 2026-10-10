@@ -79,7 +79,7 @@ pub fn blocks(content: &Value, index: usize) -> Vec<Value> {
         let kind = s(raw, "type").to_lowercase();
         let block = match kind.as_str() {
             "thinking" | "reasoning" | "summary_text" => json!({"kind":"thinking","text":text(raw),"sourceLine":index}),
-            "redacted_thinking" => json!({"kind":"thinking","text":"Reasoning unavailable (redacted)","sourceLine":index}),
+            "redacted_thinking" => json!({"kind":"thinking","redacted":true,"sourceLine":index}),
             "toolcall"|"tool_call"|"tool_use"|"function_call"|"custom_tool_call"|"local_shell_call"|"server_tool_use"|"web_search_tool_use"|"mcp_tool_use" => {
                 let input = pick(raw, &["arguments","input","parameters"]);
                 json!({"kind":"tool-call","id":pick(raw,&["id","call_id","callId"]),"name":pick(raw,&["name","toolName"]).as_str().unwrap_or_else(|| raw["function"]["name"].as_str().unwrap_or("tool")),"input":parsed(&input),"sourceLine":index})
@@ -139,6 +139,7 @@ pub fn finish(trace: &mut Value) {
             s(item, "model").to_owned(),
             s(item, "effort").to_owned(),
             s(item, "label").to_owned(),
+            s(item, "eventType").to_owned(),
         ];
         for block in item["blocks"].as_array().unwrap() {
             if block["kind"] == "tool-call" {

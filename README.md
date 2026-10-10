@@ -1,67 +1,72 @@
 # JSONL Viewer
 
-基于 Rust、Tauri 2、React 19 和 Astryx 的本地桌面工具，用于查看 JSON Lines 数据和 Agent 会话。
+**English** | [简体中文](README.zh-CN.md)
 
-## 使用
+A local desktop tool built with Rust, Tauri 2, React 19, and Astryx for viewing JSON Lines data and agent sessions.
 
-- 打开、拖入或双击 `.jsonl` / `.ndjson` 文件；也支持逐行读取 `.json`、`.log`、`.txt`。
-- 表格、树形、原文和会话视图；支持已加载内容搜索、行详情、复制、列显隐与列宽调整。
-- 行详情覆盖在窗口右侧，不挤压主内容；宽度为窗口的 50%，最大 960 像素，高度撑满内容视口。标题、编辑/保存和复制操作固定，中间内容统一滚动。
-- 切换视图时先显示 Astryx 骨架屏，再构建数据视图；表格和树形的长文本使用短预览，完整 JSON 可在行详情或展开行中查看。
-- 自动识别 STS、Codex、Claude Code、Pi 和 Hermes 会话，显示消息、思考、工具调用与结果、模型、推理强度和 token 用量。
-- 多文件标签页、目录浏览、最近文件、会话来源、父子会话导航。
-- 最近文件保留最多 50 条，侧栏默认显示 5 条，可展开更多；悬停或键盘聚焦单条历史时显示垃圾桶，只移除该条记录。当前文件标签和侧栏已打开项的关闭按钮始终可见，其他文件在悬停或键盘聚焦时显示，未保存的修改会先提示确认。
-- 保存和错误提示统一显示在右下方，最新提示距窗口底部 80 像素，不随应用缩放改变；多个提示向上堆叠。
-- 文件关闭按钮在鼠标悬停和按下时不显示背景框，键盘聚焦时保留焦点轮廓。
-- 会话排序、宽度和详情开关使用主工具栏中的图标按钮，悬停可查看操作提示。Windows 原生菜单栏隐藏，菜单快捷键仍然保留。
-- 会话文件变化时自动刷新，支持最新在前、消息跳转和暂停/恢复跟随。
-- 进入编辑模式，在行详情中编辑 JSON。有效输入立即保留为草稿，点击保存写入磁盘；未完成的 JSON 也会触发未保存提示。
-- 浅色、深色、跟随系统；界面使用 Astryx Neutral 主题，支持 80%–150% 缩放。
+## Usage
 
-文件按 1,000 条非空记录逐批加载，表格/树形/原文视图每页展示 100 条已加载记录。搜索范围是当前已加载内容。保存由 Rust 合并修改行与完整源文件，保留未加载内容、未修改的空白和换行；发现外部修改时拒绝覆盖。另存为完整副本后，源文件的草稿仍保留。
+- Open, drag and drop, or double-click `.jsonl` / `.ndjson` files. `.json`, `.log`, and `.txt` files can also be read line by line.
+- Table, tree, raw text, and session views, with search across loaded content, row details, copying, column visibility, and column resizing.
+- Row details overlay the right side of the window without shrinking the main content. The panel uses 50% of the window width, up to 960 pixels, and fills the content viewport height. The title, edit/save actions, and copy action stay fixed while the content scrolls in a single area.
+- Switching views first displays an Astryx skeleton screen, then builds the data view. Table and tree views show short previews of long text; full JSON is available in row details or expanded rows.
+- Automatically detects STS, Codex, Claude Code, Pi, and Hermes sessions and displays messages, thinking, tool calls and results, models, reasoning effort, and token usage.
+- Multiple file tabs, directory browsing, recent files, session sources, and navigation between parent and child sessions.
+- Recent files retain up to 50 entries. The sidebar initially shows 5 entries and can expand to show more. Hovering over or focusing a history entry reveals a trash icon that removes only that entry. Close buttons are always visible on the active file tab and open-file sidebar entries; other files show them on hover or keyboard focus. Unsaved changes prompt for confirmation before closing.
+- Save and error notifications appear at the bottom right. The newest notification sits 80 pixels above the window bottom, independent of application zoom; additional notifications stack upward.
+- File close buttons have no background box on hover or press, and retain a focus outline for keyboard navigation.
+- Session ordering, width, and detail visibility use icon buttons in the main toolbar, with tooltips on hover. The native Windows menu bar is hidden, while menu keyboard shortcuts remain available.
+- Session files refresh automatically when they change, with newest-first ordering, message navigation, and controls to pause or resume following updates.
+- Enter edit mode to edit JSON in row details. Valid input is immediately retained as a draft; click Save to write it to disk. Incomplete JSON also triggers an unsaved-changes prompt.
+- Light, dark, and system appearance, using the Astryx Neutral theme, with 80%–150% zoom.
+- English and Simplified Chinese UI. Choose System, English, or 简体中文 in the file browser's Language selector. System is the default: a Chinese system language selects Simplified Chinese; other languages fall back to English. Manual choices persist across restarts. Switching languages retains open files, drafts, and view state; source data and technical diagnostics are preserved.
 
-## 开发
+Files load in batches of 1,000 non-empty records. Table, tree, and raw text views display 100 loaded records per page. Search covers only currently loaded content. Rust saves files by merging edited rows into the complete source file, preserving unloaded content, untouched whitespace, and line endings. It refuses to overwrite files that have changed externally. Saving a complete copy with Save As retains drafts for the source file.
 
-Windows 需要 Rust stable、MSVC C++ Build Tools、Node.js 22.12+ 和 WebView2 Runtime。
+## Development
+
+Windows requires Rust stable, MSVC C++ Build Tools, Node.js 22.12+, and the WebView2 Runtime.
 
 ```powershell
 npm ci
 npm run desktop
 ```
 
-`npm run dev` 仅启动前端预览；本地文件操作需要 Tauri 桌面进程。
+`npm run dev` starts only the frontend preview; local file operations require the Tauri desktop process.
 
 ```powershell
-npm run build                         # TypeScript 与前端构建
-npm test                              # 前端状态与编辑回归
+npm run build                         # TypeScript checks and frontend build
+npm test                              # Frontend state and editing regressions
 cargo test --manifest-path src-tauri/Cargo.toml --no-default-features
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 npm run tauri -- build --debug --no-bundle
-npm run test:native                    # Windows WebView2，真实文件读写
-npm run desktop:build                  # Release EXE 与 NSIS 安装包
+npm run test:native                    # Windows WebView2 with real file reads and writes
+npm run desktop:build                  # Release EXE and NSIS installer
 ```
 
-原生测试在系统临时目录创建测试文件，不修改项目中的样例。请先关闭正在运行的 JSONL Viewer，避免单实例进程接收测试参数。截图默认写入临时目录；可设置 `JSONL_QA_ARTIFACT_DIR` 保存截图。
+Native tests create files in the system temporary directory and leave the project's sample files unchanged. Close any running JSONL Viewer instance before testing so that the single-instance process does not receive the test arguments. Screenshots are written to the temporary directory by default; set `JSONL_QA_ARTIFACT_DIR` to choose where to save them.
 
-## 架构
+## Architecture
 
-| 目录 | 职责 |
+| Path | Responsibility |
 |---|---|
-| `src-tauri/src/reader.rs` | 字节游标、物理行号、JSONL 分页与 UTF-8 处理 |
-| `src-tauri/src/documents.rs` | 文档身份和版本、完整保存、修改冲突检查 |
-| `src-tauri/src/atomic_save.rs` | 平台原子替换 |
-| `src-tauri/src/traces/` | 格式检测、消息归一化、工具结果匹配与会话元数据 |
-| `src-tauri/src/discovery.rs` | 目录与标准会话来源 |
-| `src-tauri/src/desktop.rs` | Tauri 命令、原生菜单、文件变化事件与单实例 |
-| `src/workspace/` | 每文件独立状态、草稿及异步响应确认 |
-| `src/views/` | 表格、树形、原文、会话与行详情 |
-| `src/components/` | 文件浏览器、工具栏与会话来源 |
+| `src-tauri/src/reader.rs` | Byte cursors, physical line numbers, JSONL pagination, and UTF-8 handling |
+| `src-tauri/src/documents.rs` | Document identity and versions, complete-file saves, and conflict checks |
+| `src-tauri/src/atomic_save.rs` | Platform-specific atomic replacement |
+| `src-tauri/src/traces/` | Format detection, message normalization, tool result matching, and session metadata |
+| `src-tauri/src/discovery.rs` | Directories and standard session sources |
+| `src-tauri/src/desktop.rs` | Tauri commands, native menus, file change events, and single-instance handling |
+| `src-tauri/src/menus.rs` | Native menu shortcuts and labels from the shared language catalogs |
+| `src/i18n/` | English and Chinese catalogs, language preference, system language detection, and Astryx internationalization |
+| `src/workspace/` | Per-file state, drafts, and validation of asynchronous responses |
+| `src/views/` | Table, tree, raw text, session, and row detail views |
+| `src/components/` | File browser, toolbar, and session sources |
 
-所有交互控件直接使用 Astryx。自定义 CSS 仅处理窗口尺寸、滚动容器和数据排版；系统文件对话框、菜单和窗口由原生平台提供。字体和样式随应用打包，无运行时 CDN 依赖。
+All interactive controls use Astryx directly. Custom CSS handles only window dimensions, scroll containers, and data layout. File dialogs, menus, and windows are provided by the native platform. Fonts and styles are bundled with the application, with no runtime CDN dependency.
 
-Windows 原生流程有自动化回归。macOS/Linux 未在当前环境验证；如需构建其他平台，应在对应系统安装 Tauri 前置依赖并调整 bundle targets。持续写入的文件可能暂时被写入进程锁定，保存失败时草稿会保留。实时更新只解析新行；文件完整性检查会读取已有字节，因此极大文件的刷新成本仍随文件大小增加。
+Windows native workflows have automated regression coverage. macOS and Linux have not been verified in the current environment. To build for another platform, install Tauri's prerequisites on that system and adjust the bundle targets. Files being continuously written may be temporarily locked by the writing process; drafts are retained if saving fails. Live updates parse only new lines, but file integrity checks read existing bytes, so refresh costs for very large files still grow with file size.
 
-## 组件文档
+## Component Documentation
 
 ```powershell
 npm run astryx -- component Table --dense
@@ -70,4 +75,4 @@ npm run astryx -- component Chat --dense
 
 ## License
 
-MIT。第三方组件、字体及 Rust 依赖适用各自许可证。
+MIT. Third-party components, fonts, and Rust dependencies are subject to their respective licenses.

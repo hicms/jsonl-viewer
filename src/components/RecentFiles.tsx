@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { useState } from 'react';
 import { SideNavItem } from '@astryxdesign/core/SideNav';
 import { Stack } from '@astryxdesign/core/Stack';
@@ -15,11 +16,12 @@ export function RecentFiles({
   onOpen: (path: string) => void;
   onRemove: (path: string) => void;
 }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   return (
-    <section aria-label="最近文件">
+    <section aria-label={t('recentFiles')}>
       <Stack gap={1}>
-        <Text color="secondary">最近文件</Text>
+        <Text color="secondary">{t('recentFiles')}</Text>
         {(expanded ? paths : paths.slice(0, 5)).map((path) => (
           <div key={path} className="file-item">
             <SideNavItem
@@ -28,7 +30,7 @@ export function RecentFiles({
               onClick={() => onOpen(path)}
               actions={
                 <IconButton
-                  label={`移除历史 ${path.split(/[\\/]/).at(-1) ?? path}`}
+                  label={t('removeHistory', { name: path.split(/[\\/]/).at(-1) ?? path })}
                   icon={<Trash2 size={15} />}
                   variant="ghost"
                   className="file-close"
@@ -40,7 +42,7 @@ export function RecentFiles({
         ))}
         {paths.length > 5 ? (
           <Button
-            label={expanded ? '收起' : `显示更多（${paths.length - 5}）`}
+            label={expanded ? t('collapse') : t('showMore', { count: paths.length - 5 })}
             variant="ghost"
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}

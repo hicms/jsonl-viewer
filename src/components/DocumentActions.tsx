@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Pencil, Save } from 'lucide-react';
 import type { Session } from '../lib/types';
@@ -10,13 +11,14 @@ export function DocumentActions({
   session: Session;
   workspace: WorkspaceController;
 }) {
+  const { t } = useI18n();
   const { snapshot, ui } = session;
   return (
     <>
       {ui.view !== 'trace' ? (
         <IconButton
-          label={ui.editMode ? '编辑中' : '编辑'}
-          tooltip={ui.editMode ? '退出编辑模式' : '编辑 JSON'}
+          label={ui.editMode ? t('editing') : t('edit')}
+          tooltip={ui.editMode ? t('exitEdit') : t('editJson')}
           icon={<Pencil size={16} />}
           variant={ui.editMode ? 'primary' : 'ghost'}
           onClick={() => {
@@ -27,8 +29,8 @@ export function DocumentActions({
         />
       ) : null}
       <IconButton
-        label="保存"
-        tooltip="保存文件"
+        label={t('save')}
+        tooltip={t('saveFile')}
         icon={<Save size={16} />}
         isDisabled={
           session.busy ||

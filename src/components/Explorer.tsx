@@ -1,9 +1,11 @@
+import { useI18n } from '../i18n';
 import { useMemo, useState } from 'react';
 import { SideNav, SideNavItem } from '@astryxdesign/core/SideNav';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { IconButton } from '@astryxdesign/core/IconButton';
+import { Selector } from '@astryxdesign/core/Selector';
 import { TreeList, type TreeListItemData } from '@astryxdesign/core/TreeList';
 import { Folder, FolderOpen, FileJson, RefreshCw, X, MessagesSquare } from 'lucide-react';
 import { RecentFiles } from './RecentFiles';
@@ -22,6 +24,7 @@ export function Explorer({
   onFolderReady: (action: () => Promise<void>) => void;
   onClose: (id: string) => void;
 }) {
+  const { t, preference, setPreference } = useI18n();
   const [folder, setFolder] = useState<string | null>(null);
   const [cache, setCache] = useState<Record<string, Entry[]>>({});
   const [epoch, setEpoch] = useState(0);
@@ -56,7 +59,8 @@ export function Explorer({
           </Text>
         ),
         startContent: entry.isDir ? <Folder size={16} /> : <FileJson size={16} />,
-        description: entry.trace?.traceType === 'subagent' ? '子会话' : entry.trace?.format,
+        description:
+          entry.trace?.traceType === 'subagent' ? t('childSessions') : entry.trace?.format,
         onClick: () => {
           if (entry.isDir) void load(entry.path);
           else void workspace.open(entry.path);
@@ -67,7 +71,7 @@ export function Explorer({
             : [
                 {
                   id: `${entry.path}/load`,
-                  label: '读取目录',
+                  label: t('readDirectory'),
                   onClick: () => void load(entry.path),
                 },
               ]
@@ -76,10 +80,10 @@ export function Explorer({
       }));
     }
     return folder ? map(cache[folder] ?? []) : [];
-  }, [folder, cache, workspace.active?.snapshot.path]);
+  }, [folder, cache, workspace.active?.snapshot.path, t]);
   return (
     <SideNav
-      aria-label="文件浏览器"
+      aria-label={t('fileBrowser')}
       resizable={{
         autoSaveId: 'jsonl-viewer:2:explorer',
         defaultWidth: 260,
@@ -89,9 +93,9 @@ export function Explorer({
       collapsible
       header={
         <Stack direction="horizontal" justify="between" align="center">
-          <Heading level={2}>文件浏览器</Heading>
+          <Heading level={2}>{t('fileBrowser')}</Heading>
           <IconButton
-            label="打开文件夹"
+            label={t('openFolder')}
             icon={<FolderOpen size={16} />}
             variant="ghost"
             onClick={() => void choose()}
@@ -100,23 +104,38 @@ export function Explorer({
       }
     >
       <Stack gap={5} paddingBlock={3}>
+        <Selector
+          label={t('language')}
+          value={preference}
+          onChange={(value) => setPreference(value as 'system' | 'en' | 'zh-CN')}
+          options={[
+            { value: 'system', label: t('system') },
+            { value: 'en', label: 'English' },
+            { value: 'zh-CN', label: '简体中文' },
+          ]}
+          width="fill"
+        />
         <Stack gap={1}>
-          <Text color="secondary">打开</Text>
+          <Text color="secondary">{t('open')}</Text>
           <SideNavItem
-            label="文件"
+            label={t('file')}
             icon={<FileJson size={17} />}
             onClick={() => void workspace.open()}
           />
           <SideNavItem
-            label="文件夹"
+            label={t('folder')}
             icon={<FolderOpen size={17} />}
             onClick={() => void choose()}
           />
-          <SideNavItem label="Agent 会话" icon={<MessagesSquare size={17} />} onClick={onSources} />
+          <SideNavItem
+            label={t('agentSessions')}
+            icon={<MessagesSquare size={17} />}
+            onClick={onSources}
+          />
         </Stack>
         {workspace.state.sessions.length ? (
           <Stack gap={1}>
-            <Text color="secondary">已打开</Text>
+            <Text color="secondary">{t('opened')}</Text>
             {workspace.state.sessions.map((session) => (
               <div key={session.snapshot.id} className="file-item">
                 <SideNavItem
@@ -126,7 +145,7 @@ export function Explorer({
                   onClick={() => workspace.dispatch({ type: 'activate', id: session.snapshot.id })}
                   actions={
                     <IconButton
-                      label={`关闭 ${session.snapshot.name}`}
+                      label={t('closeFile', { name: session.snapshot.name })}
                       icon={<X size={14} />}
                       variant="ghost"
                       className="file-close"
@@ -146,7 +165,7 @@ export function Explorer({
               </Text>
               <Stack direction="horizontal">
                 <IconButton
-                  label="刷新目录"
+                  label={t('refreshDirectory')}
                   icon={<RefreshCw size={14} />}
                   variant="ghost"
                   onClick={() => {
@@ -156,7 +175,7 @@ export function Explorer({
                   }}
                 />
                 <IconButton
-                  label="关闭文件夹"
+                  label={t('closeFolder')}
                   icon={<X size={14} />}
                   variant="ghost"
                   onClick={() => {
@@ -171,7 +190,7 @@ export function Explorer({
               items={items}
               density="compact"
               variant="noGuides"
-              aria-label="目录文件"
+              aria-label={t('directoryFiles')}
             />
           </Stack>
         ) : null}

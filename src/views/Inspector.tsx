@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { useState, type ReactNode } from 'react';
 import { Card } from '@astryxdesign/core/Card';
 import { Stack } from '@astryxdesign/core/Stack';
@@ -27,6 +28,7 @@ export function Inspector({
   report: (error: unknown) => void;
   actions?: ReactNode;
 }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState('json');
   const [draft, setDraft] = useState(line.parseError ? line.raw : stringify(line.value, true));
   const [error, setError] = useState<string>();
@@ -46,28 +48,33 @@ export function Inspector({
     <Card
       className="inspector"
       role="complementary"
-      aria-label="行详情"
+      aria-label={t('rowDetails')}
       padding={0}
       elevation="high"
     >
       <Stack padding={4} gap={3} className="inspector-header">
         <Stack direction="horizontal" justify="between" align="center" wrap="wrap" gap={2}>
-          <Heading level={2}>第 {line.index + 1} 行</Heading>
+          <Heading level={2}>{t('lineNumber', { line: line.index + 1 })}</Heading>
           <Stack direction="horizontal" align="center" gap={1}>
             {actions}
-            <IconButton label="关闭详情" icon={<X size={16} />} variant="ghost" onClick={onClose} />
+            <IconButton
+              label={t('closeDetails')}
+              icon={<X size={16} />}
+              variant="ghost"
+              onClick={onClose}
+            />
           </Stack>
         </Stack>
         <TabList value={tab} onChange={setTab}>
           <Tab value="json" label="JSON" />
-          <Tab value="raw" label="原文" />
+          <Tab value="raw" label={t('raw')} />
         </TabList>
       </Stack>
       <Stack padding={4} gap={4} className="inspector-content">
         {line.parseError ? <Text color="secondary">{line.parseError}</Text> : null}
         {editMode ? (
           <TextArea
-            label="编辑 JSON"
+            label={t('editJson')}
             value={draft}
             onChange={change}
             rows={18}
@@ -85,11 +92,9 @@ export function Inspector({
         )}
       </Stack>
       <Stack padding={3} gap={2} className="inspector-footer">
-        {editMode ? (
-          <Text color="secondary">修改已保留在当前文件中，使用“保存”写入磁盘。</Text>
-        ) : null}
+        {editMode ? <Text color="secondary">{t('draftHint')}</Text> : null}
         <Button
-          label={tab === 'raw' ? '复制原文' : '复制 JSON'}
+          label={tab === 'raw' ? t('copyRaw') : t('copyJson')}
           icon={<Copy size={16} />}
           variant="ghost"
           onClick={() =>

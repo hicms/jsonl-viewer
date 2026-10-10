@@ -1,6 +1,35 @@
 use jsonl_viewer_core::{reader::parse_line, traces};
 use serde_json::{json, Value};
 
+#[test]
+fn generated_session_presentation_is_locale_neutral() {
+    let trace = parse(vec![
+        json!({"type":"session_meta","payload":{"id":"session"}}),
+        json!({"type":"event_msg","payload":{"type":"error","message":"original error"}}),
+        json!({"type":"event_msg","payload":{"type":"turn_aborted","reason":"original reason"}}),
+        json!({"type":"compacted","payload":{"message":"original compaction"}}),
+    ]);
+    assert!(trace["title"].is_null());
+    for (index, kind) in ["error", "turn_aborted", "compacted"]
+        .into_iter()
+        .enumerate()
+    {
+        assert_eq!(trace["items"][index]["eventType"], kind);
+        assert!(trace["items"][index]["label"].is_null());
+        assert!(trace["items"][index]["blocks"][0]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("original"));
+    }
+    let trace = parse(vec![
+        json!({"type":"session","harness":"Example","id":"session","name":"用户标题"}),
+        json!({"type":"message","message":{"role":"assistant","content":[{"type":"redacted_thinking","data":"secret"}]}}),
+    ]);
+    assert_eq!(trace["title"], "用户标题");
+    assert_eq!(trace["items"][0]["blocks"][0]["redacted"], true);
+    assert!(trace["items"][0]["blocks"][0]["text"].is_null());
+}
+
 fn parse(values: Vec<Value>) -> Value {
     let lines = values
         .iter()

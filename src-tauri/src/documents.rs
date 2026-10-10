@@ -182,7 +182,7 @@ impl Documents {
             if edit.index >= doc.fingerprint.total_lines
                 || !doc.lines.iter().any(|line| line.index == edit.index)
             {
-                return Err(Error::Invalid("只能修改已加载的行".into()));
+                return Err(Error::UnloadedEdit);
             }
             if !doc
                 .lines
@@ -196,15 +196,11 @@ impl Documents {
                 message: error.to_string(),
             })?;
             if edit.raw.contains(['\r', '\n']) {
-                return Err(Error::Invalid(
-                    "每一行必须是一条 JSON，请先压缩为单行".into(),
-                ));
+                return Err(Error::MultilineEdit);
             }
             replacements.insert(edit.index, edit.raw);
         }
-        let parent = target
-            .parent()
-            .ok_or_else(|| Error::Invalid("保存路径无效".into()))?;
+        let parent = target.parent().ok_or(Error::InvalidPath)?;
         let mut output = tempfile::NamedTempFile::new_in(parent)?;
         let mut reader = BufReader::new(&mut source);
         let mut bytes = Vec::new();

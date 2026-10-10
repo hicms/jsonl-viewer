@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n';
 import { useState } from 'react';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Button } from '@astryxdesign/core/Button';
@@ -6,6 +7,7 @@ import { Pagination } from '@astryxdesign/core/Pagination';
 import type { Line } from '../lib/types';
 
 export function RawView({ lines, onSelect }: { lines: Line[]; onSelect: (index: number) => void }) {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const actualPage = Math.min(page, Math.max(1, Math.ceil(lines.length / 100)));
   return (
@@ -13,7 +15,7 @@ export function RawView({ lines, onSelect }: { lines: Line[]; onSelect: (index: 
       {lines.slice((actualPage - 1) * 100, actualPage * 100).map((line) => (
         <Stack key={line.index} gap={1}>
           <Button
-            label={`第 ${line.index + 1} 行${line.parseError ? ' · JSON 错误' : ''}`}
+            label={`${t('lineNumber', { line: line.index + 1 })}${line.parseError ? ` · ${t('jsonError')}` : ''}`}
             variant="ghost"
             onClick={() => onSelect(line.index)}
           />
@@ -25,7 +27,7 @@ export function RawView({ lines, onSelect }: { lines: Line[]; onSelect: (index: 
         onChange={setPage}
         totalItems={lines.length}
         pageSize={100}
-        label="原文记录分页"
+        label={t('rawPagination')}
       />
     </Stack>
   );

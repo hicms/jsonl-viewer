@@ -1,3 +1,4 @@
+import { useI18n, type Translate } from '../i18n';
 import { memo, useMemo, useState } from 'react';
 import { TreeList, type TreeListItemData } from '@astryxdesign/core/TreeList';
 import { Button } from '@astryxdesign/core/Button';
@@ -13,6 +14,7 @@ function node(
   id: string,
   expand: boolean,
   onSelect: () => void,
+  t: Translate,
 ): TreeListItemData {
   const container = value !== null && typeof value === 'object';
   return {
@@ -21,15 +23,15 @@ function node(
       <Text type="code">
         {label}
         {container
-          ? ` · ${Array.isArray(value) ? '数组' : '对象'} (${Object.keys(value).length})`
-          : `: ${jsonPreview(value)}`}
+          ? ` · ${Array.isArray(value) ? t('array') : t('object')} (${Object.keys(value).length})`
+          : `: ${jsonPreview(value, t)}`}
       </Text>
     ),
     onClick: onSelect,
     isExpanded: expand,
     children: container
       ? Object.entries(value).map(([key, child]) =>
-          node(child, key, `${id}/${encodeURIComponent(key)}`, expand, onSelect),
+          node(child, key, `${id}/${encodeURIComponent(key)}`, expand, onSelect, t),
         )
       : undefined,
   };
@@ -41,6 +43,7 @@ export const TreeView = memo(function TreeView({
   lines: Line[];
   onSelect: (index: number) => void;
 }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [epoch, setEpoch] = useState(0);
   const [page, setPage] = useState(1);
@@ -53,22 +56,27 @@ export const TreeView = memo(function TreeView({
               id: String(line.index),
               label: (
                 <Text color="secondary">
-                  第 {line.index + 1} 行 · {line.parseError}
+                  {t('lineNumber', { line: line.index + 1 })} · {line.parseError}
                 </Text>
               ),
               onClick: () => onSelect(line.index),
             }
-          : node(line.value, `第 ${line.index + 1} 行`, String(line.index), expanded, () =>
-              onSelect(line.index),
+          : node(
+              line.value,
+              t('lineNumber', { line: line.index + 1 }),
+              String(line.index),
+              expanded,
+              () => onSelect(line.index),
+              t,
             ),
       ),
-    [lines, actualPage, expanded, onSelect],
+    [lines, actualPage, expanded, onSelect, t],
   );
   return (
     <Stack gap={3} padding={4}>
       <Stack direction="horizontal" gap={2}>
         <Button
-          label="展开全部"
+          label={t('expandAll')}
           variant="ghost"
           onClick={() => {
             setExpanded(true);
@@ -76,7 +84,7 @@ export const TreeView = memo(function TreeView({
           }}
         />
         <Button
-          label="折叠全部"
+          label={t('collapseAll')}
           variant="ghost"
           onClick={() => {
             setExpanded(false);
@@ -88,14 +96,14 @@ export const TreeView = memo(function TreeView({
         key={`${epoch}/${actualPage}`}
         items={items}
         density="compact"
-        aria-label="JSON 树"
+        aria-label={t('jsonTree')}
       />
       <Pagination
         page={actualPage}
         onChange={setPage}
         totalItems={lines.length}
         pageSize={100}
-        label="树形记录分页"
+        label={t('treePagination')}
       />
     </Stack>
   );

@@ -2,18 +2,14 @@ import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import type { View } from '../lib/types';
-
-const names: Record<View, string> = {
-  table: '表格',
-  tree: '树形',
-  raw: '原文',
-  trace: '会话',
-};
+import { useI18n } from '../i18n';
 
 export function ViewSkeleton({ view }: { view: View }) {
+  const { t } = useI18n();
+  const loading = t('loadingView', { view: t(view) });
   return (
-    <Stack gap={4} padding={4} role="status" aria-label={`正在加载${names[view]}`} aria-busy="true">
-      <Text color="secondary">正在加载{names[view]}…</Text>
+    <Stack gap={4} padding={4} role="status" aria-label={loading} aria-busy="true">
+      <Text color="secondary">{loading}…</Text>
       {view === 'table' ? (
         <Stack gap={3}>
           {Array.from({ length: 9 }, (_, row) => (

@@ -4,8 +4,12 @@ import { api, errorMessage } from '../lib/bridge';
 import { usePreference } from '../lib/preferences';
 import type { FileUi, Json } from '../lib/types';
 import { emptyWorkspace, reducer } from './reducer';
+import { useI18n } from '../i18n';
 
 export function useWorkspace() {
+  const { t } = useI18n();
+  const translation = useRef(t);
+  translation.current = t;
   const [state, dispatch] = useReducer(reducer, emptyWorkspace);
   const latest = useRef(state);
   latest.current = state;
@@ -14,7 +18,8 @@ export function useWorkspace() {
   const [recent, setRecent] = usePreference<string[]>('recent', []);
   const [order, setOrder] = usePreference<'oldest' | 'newest'>('traceOrder', 'oldest');
   const toast = useToast();
-  const report = (error: unknown) => toast({ body: errorMessage(error), type: 'error' });
+  const report = (error: unknown) =>
+    toast({ body: errorMessage(error, translation.current), type: 'error' });
 
   async function open(path?: string) {
     try {
@@ -65,7 +70,7 @@ export function useWorkspace() {
     const session = latest.current.sessions.find((s) => s.snapshot.id === id);
     if (!session || running.current.has(id)) return;
     if (Object.values(session.edits).some((patch) => patch.parseError)) {
-      report('请先修复编辑内容中的 JSON 错误');
+      report(translation.current('fixJson'));
       return;
     }
     running.current.add(id);
@@ -91,7 +96,7 @@ export function useWorkspace() {
           submitted,
           saveAs,
         });
-        toast({ body: saveAs ? '已另存为完整文件' : '已保存完整文件' });
+        toast({ body: translation.current(saveAs ? 'savedCopy' : 'saved') });
       }
     } catch (error) {
       report(error);

@@ -1,13 +1,6 @@
+import { render, renderHook } from './render';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-  within,
-} from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { Theme } from '@astryxdesign/core/theme';
 import { neutralTheme } from '@astryxdesign/theme-neutral/built';
 import { Explorer } from '../src/components/Explorer';

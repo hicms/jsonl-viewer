@@ -109,7 +109,7 @@ pub(crate) fn base(format: &str, header: &Value) -> Value {
         "hermes" => "Hermes",
         _ => s(header, "harness"),
     };
-    json!({ "format":format, "harness":harness, "title":header["name"].as_str().or(header["title"].as_str()).map(str::to_owned).unwrap_or_else(|| format!("{harness} 会话")), "id":header["id"], "cwd":header["cwd"], "model":header["model"].as_str().or(header["modelId"].as_str()), "items":[], "traceType":"unknown", "parentThreadId":null, "reasoningEffort":null, "efforts":[] })
+    json!({ "format":format, "harness":harness, "title":header["name"].as_str().or(header["title"].as_str()), "id":header["id"], "cwd":header["cwd"], "model":header["model"].as_str().or(header["modelId"].as_str()), "items":[], "traceType":"unknown", "parentThreadId":null, "reasoningEffort":null, "efforts":[] })
 }
 
 pub(crate) fn item(line: &Line, kind: &str, role: &str) -> Value {

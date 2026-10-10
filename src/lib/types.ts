@@ -13,6 +13,7 @@ export interface ToolResult {
 export interface TraceBlock {
   kind: 'text' | 'thinking' | 'tool-call' | 'tool-result' | 'image';
   text?: string;
+  redacted?: boolean;
   id?: string | null;
   name?: string;
   input?: Json;
@@ -33,6 +34,7 @@ export interface TraceItem {
   provider: string | null;
   effort: string | null;
   label: string | null;
+  eventType?: 'error' | 'turn_aborted' | 'compacted';
   blocks: TraceBlock[];
   searchText: string;
   usage: { input: number | null; output: number | null } | null;
@@ -40,7 +42,7 @@ export interface TraceItem {
 export interface Trace {
   format: string;
   harness: string;
-  title: string;
+  title: string | null;
   id: string | null;
   cwd: string | null;
   model: string | null;
