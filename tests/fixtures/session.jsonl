@@ -1,0 +1,8 @@
+{"type":"session_meta","timestamp":"2026-10-10T02:30:00Z","payload":{"id":"session-demo","cwd":"C:/workspace/example","model_provider":"openai","thread_source":"user"}}
+{"type":"turn_context","payload":{"model":"example-model","effort":"high"}}
+{"type":"response_item","timestamp":"2026-10-10T02:30:01Z","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"帮我检查数据文件，确认每一行都是有效 JSON。"}]}}
+{"type":"response_item","timestamp":"2026-10-10T02:30:03Z","payload":{"type":"reasoning","summary":[{"type":"summary_text","text":"先按行读取文件，再统计有效记录与解析错误。"}]}}
+{"type":"response_item","timestamp":"2026-10-10T02:30:04Z","payload":{"type":"function_call","call_id":"call-check","name":"validate_jsonl","arguments":"{\"file\":\"data.jsonl\"}"}}
+{"type":"response_item","timestamp":"2026-10-10T02:30:05Z","payload":{"type":"function_call_output","call_id":"call-check","output":{"valid":99,"invalid":1,"errors":[{"line":42,"message":"missing closing brace"}]}}}
+{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":1240,"output_tokens":380}}}}
+{"type":"response_item","timestamp":"2026-10-10T02:30:06Z","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"已检查 **100 行**数据，其中 99 行有效。\n\n第 42 行缺少右花括号。建议修复该行后重新验证。\n\n```json\n{\"status\": \"ok\"}\n```"}]}}

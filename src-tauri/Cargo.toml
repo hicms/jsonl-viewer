@@ -1,0 +1,43 @@
+[package]
+name = "jsonl-viewer"
+version = "2.0.0"
+edition = "2021"
+rust-version = "1.85"
+description = "A native JSON Lines and agent session viewer"
+license = "MIT"
+
+[lib]
+name = "jsonl_viewer_core"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "jsonl-viewer"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[features]
+default = ["desktop"]
+desktop = ["dep:tauri", "dep:tauri-build", "dep:rfd", "dep:tauri-plugin-single-instance"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [], optional = true }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+tempfile = "3"
+thiserror = "2"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+tauri = { version = "2", features = [], optional = true }
+rfd = { version = "0.15", optional = true }
+tauri-plugin-single-instance = { version = "2", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
+panic = "abort"

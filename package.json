@@ -1,0 +1,46 @@
+{
+  "name": "jsonl-viewer",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "tauri": "tauri",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build",
+    "test": "vitest run",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:native": "node tests/native.mjs",
+    "format": "prettier --write src tests vite.config.ts",
+    "format:check": "prettier --check src tests vite.config.ts",
+    "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"
+  },
+  "dependencies": {
+    "@astryxdesign/core": "0.6.7",
+    "@astryxdesign/theme-neutral": "0.6.7",
+    "@fontsource/figtree": "^5.2.0",
+    "@stylexjs/stylex": "^0.19.0",
+    "@tauri-apps/api": "^2.10.0",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@astryxdesign/cli": "0.6.7",
+    "@playwright/test": "^1.58.0",
+    "@tauri-apps/cli": "^2.10.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "jsdom": "^28.0.0",
+    "prettier": "3.9.10",
+    "typescript": "^5.9.0",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Local desktop window events and window controls",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-close", "core:window:allow-destroy"]
+}

@@ -1,0 +1,6 @@
+{"id":1,"type":"log","level":"info","message":"服务已启动","time":"10:30:01","details":{"port":3000,"host":"127.0.0.1"}}
+{"id":2,"type":"request","level":"info","message":"读取用户列表","time":"10:30:02","details":{"method":"GET","path":"/api/users","status":200}}
+{"id":3,"type":"metric","level":"info","message":"内存使用情况","time":"10:30:03","details":{"memoryMB":128,"cpu":0.12}}
+{"id":4,"type":"log","level":"warn","message":"请求耗时较长","time":"10:30:04","details":{"durationMs":820,"retries":0}}
+invalid JSON example
+{"id":6,"type":"event","level":"info","message":"任务已完成","time":"10:30:06","details":{"result":"success","items":[1,2,3]}}
