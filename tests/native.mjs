@@ -119,6 +119,8 @@ try {
     }
   }
   if (!browser) throw new Error('WebView2 did not expose the test CDP endpoint');
+  appendFileSync(startupLog, `WebView2 version: ${browser.version()}\n`);
+  console.log(`Connected to WebView2 ${browser.version()}`);
   const page = browser.contexts()[0].pages()[0];
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));

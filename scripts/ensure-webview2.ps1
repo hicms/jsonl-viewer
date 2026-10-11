@@ -14,11 +14,11 @@ function Get-WebView2Version {
 
 $installed = Get-WebView2Version
 if ($installed) {
-    Write-Host "WebView2 runtime already installed: $installed"
-    return
+    Write-Host "WebView2 runtime before update: $installed"
 }
 
-# The Microsoft bootstrapper installs the runtime matching the machine architecture.
+# Install or update Evergreen to match the runtime used by current installations.
+# The Microsoft bootstrapper chooses the machine architecture.
 # https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution
 $installer = Join-Path ([IO.Path]::GetTempPath()) "jsonl-webview2-$([guid]::NewGuid()).exe"
 try {
@@ -28,6 +28,9 @@ try {
         throw 'WebView2 bootstrapper must have a valid Microsoft signature.'
     }
     $setup = Start-Process -FilePath $installer -ArgumentList '/silent', '/install' -Wait -PassThru -WindowStyle Hidden
+    if ($setup.ExitCode -ne 0) {
+        throw "WebView2 installation or update failed (exit code $($setup.ExitCode))."
+    }
     $installed = Get-WebView2Version
     if (-not $installed) {
         throw "WebView2 installation failed (exit code $($setup.ExitCode))."

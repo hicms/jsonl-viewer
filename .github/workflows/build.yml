@@ -72,13 +72,14 @@ jobs:
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
       - name: Build installers
         run: npm run desktop:build -- --ci --target "${{ matrix.target }}" -- --locked
-      - name: Ensure WebView2 runtime
+      - name: Install current WebView2 runtime
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/ensure-webview2.ps1
       - name: Windows WebView2 regression
         if: runner.os == 'Windows'
-        run: npm run test:native
+        shell: pwsh
+        run: ./tests/native-ci.ps1
         env:
           JSONL_QA_EXE: ${{ github.workspace }}/src-tauri/target/${{ matrix.target }}/release/JSONL Viewer.exe
           JSONL_QA_ARTIFACT_DIR: ${{ runner.temp }}/jsonl-native-artifacts
