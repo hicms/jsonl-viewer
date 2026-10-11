@@ -123,7 +123,9 @@ export async function verifyInspector({ page, directory, artifacts, openFile }) 
   await expect(input).toHaveValue(draft + '}');
   await input.fill(draft);
   await panel.getByRole('button', { name: '保存', exact: true }).click();
-  await expect.poll(() => JSON.parse(readFileSync(file, 'utf8')).last).toBe('保存后的末尾');
+  await expect(() => {
+    expect(JSON.parse(readFileSync(file, 'utf8')).last).toBe('保存后的末尾');
+  }).toPass({ timeout: 5_000 });
   await close();
   await page.getByRole('combobox', { name: '主题模式' }).click();
   await page.getByRole('option', { name: '浅色', exact: true }).click();

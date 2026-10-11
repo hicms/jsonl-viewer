@@ -100,12 +100,14 @@ export async function verifyLanguages({ page, directory, artifacts, openFile }) 
   await chooseLanguage(page, '简体中文');
   await panel.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.getByText('已保存完整文件', { exact: true }).last()).toBeVisible();
-  expect(readFileSync(file, 'utf8')).toBe(
-    source.replace(
-      ' {"id":0,"message":"source-0"}',
-      '{"id":0,"message":"saved-after-language-switch"}',
-    ),
-  );
+  await expect(() => {
+    expect(readFileSync(file, 'utf8')).toBe(
+      source.replace(
+        ' {"id":0,"message":"source-0"}',
+        '{"id":0,"message":"saved-after-language-switch"}',
+      ),
+    );
+  }).toPass({ timeout: 5_000 });
   await panel.getByRole('button', { name: '编辑中', exact: true }).click();
   await panel.getByRole('button', { name: '关闭详情', exact: true }).click();
   await page.screenshot({ path: path.join(artifacts, 'native-language-zh-CN.png') });
