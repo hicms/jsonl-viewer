@@ -44,6 +44,8 @@ npm run test:native                    # Windows WebView2，真实文件读写
 npm run desktop:build                  # Release EXE 与 NSIS 安装包
 ```
 
+Windows 下，`npm run desktop:build` 生成 `src-tauri/target/release/JSONL Viewer.exe` 和 `src-tauri/target/release/bundle/nsis/JSONL Viewer_2.0.0_x64-setup.exe`。
+
 原生测试在系统临时目录创建测试文件，不修改项目中的样例。请先关闭正在运行的 JSONL Viewer，避免单实例进程接收测试参数。截图默认写入临时目录；可设置 `JSONL_QA_ARTIFACT_DIR` 保存截图。
 
 ## 架构

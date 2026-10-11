@@ -17,7 +17,11 @@ import { verifyInspector } from './inspector-native.mjs';
 import { verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const exe = process.env.JSONL_QA_EXE ?? path.join(root, 'src-tauri/target/debug/jsonl-viewer.exe');
+const { mainBinaryName } = JSON.parse(
+  readFileSync(path.join(root, 'src-tauri/tauri.conf.json'), 'utf8'),
+);
+const exe =
+  process.env.JSONL_QA_EXE ?? path.join(root, 'src-tauri/target/debug', `${mainBinaryName}.exe`);
 if (!existsSync(exe)) throw new Error('First run: npm run tauri -- build --debug --no-bundle');
 const directory = mkdtempSync(path.join(tmpdir(), 'jsonl-viewer-native-'));
 const artifacts = process.env.JSONL_QA_ARTIFACT_DIR ?? directory;

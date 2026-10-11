@@ -44,6 +44,8 @@ npm run test:native                    # Windows WebView2 with real file reads a
 npm run desktop:build                  # Release EXE and NSIS installer
 ```
 
+On Windows, `npm run desktop:build` outputs `src-tauri/target/release/JSONL Viewer.exe` and `src-tauri/target/release/bundle/nsis/JSONL Viewer_2.0.0_x64-setup.exe`.
+
 Native tests create files in the system temporary directory and leave the project's sample files unchanged. Close any running JSONL Viewer instance before testing so that the single-instance process does not receive the test arguments. Screenshots are written to the temporary directory by default; set `JSONL_QA_ARTIFACT_DIR` to choose where to save them.
 
 ## Architecture
