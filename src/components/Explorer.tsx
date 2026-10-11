@@ -8,6 +8,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { TreeList, type TreeListItemData } from '@astryxdesign/core/TreeList';
 import { Folder, FolderOpen, FileJson, RefreshCw, X, MessagesSquare } from 'lucide-react';
 import { RecentFiles } from './RecentFiles';
+import { ExpandedSideNavContent } from './ExpandedSideNavContent';
 import type { Entry } from '../lib/types';
 import { api } from '../lib/bridge';
 import type { WorkspaceController } from '../workspace/useWorkspace';
@@ -93,15 +94,17 @@ export function Explorer({
       }}
       collapsible
       header={
-        <Stack direction="horizontal" justify="between" align="center">
-          <Heading level={2}>{t('fileBrowser')}</Heading>
-          <IconButton
-            label={t('openFolder')}
-            icon={<FolderOpen size={16} />}
-            variant="ghost"
-            onClick={() => void choose()}
-          />
-        </Stack>
+        <ExpandedSideNavContent>
+          <Stack direction="horizontal" justify="between" align="center">
+            <Heading level={2}>{t('fileBrowser')}</Heading>
+            <IconButton
+              label={t('openFolder')}
+              icon={<FolderOpen size={16} />}
+              variant="ghost"
+              onClick={() => void choose()}
+            />
+          </Stack>
+        </ExpandedSideNavContent>
       }
       topContent={
         <Stack gap={1}>
@@ -122,7 +125,7 @@ export function Explorer({
           />
         </Stack>
       }
-      footer={footer}
+      footer={<ExpandedSideNavContent>{footer}</ExpandedSideNavContent>}
     >
       <Stack gap={4} paddingBlock={2}>
         {workspace.state.sessions.length ? (
@@ -149,41 +152,43 @@ export function Explorer({
           </SideNavSection>
         ) : null}
         {folder ? (
-          <Stack gap={2}>
-            <Stack direction="horizontal" justify="between" align="center">
-              <Text maxLines={1} hasTruncateTooltip>
-                {folder.split(/[\\/]/).at(-1)}
-              </Text>
-              <Stack direction="horizontal">
-                <IconButton
-                  label={t('refreshDirectory')}
-                  icon={<RefreshCw size={14} />}
-                  variant="ghost"
-                  onClick={() => {
-                    setCache({});
-                    void load(folder);
-                    setEpoch((e) => e + 1);
-                  }}
-                />
-                <IconButton
-                  label={t('closeFolder')}
-                  icon={<X size={14} />}
-                  variant="ghost"
-                  onClick={() => {
-                    setFolder(null);
-                    setCache({});
-                  }}
-                />
+          <ExpandedSideNavContent>
+            <Stack gap={2}>
+              <Stack direction="horizontal" justify="between" align="center">
+                <Text maxLines={1} hasTruncateTooltip>
+                  {folder.split(/[\\/]/).at(-1)}
+                </Text>
+                <Stack direction="horizontal">
+                  <IconButton
+                    label={t('refreshDirectory')}
+                    icon={<RefreshCw size={14} />}
+                    variant="ghost"
+                    onClick={() => {
+                      setCache({});
+                      void load(folder);
+                      setEpoch((e) => e + 1);
+                    }}
+                  />
+                  <IconButton
+                    label={t('closeFolder')}
+                    icon={<X size={14} />}
+                    variant="ghost"
+                    onClick={() => {
+                      setFolder(null);
+                      setCache({});
+                    }}
+                  />
+                </Stack>
               </Stack>
+              <TreeList
+                key={epoch}
+                items={items}
+                density="compact"
+                variant="noGuides"
+                aria-label={t('directoryFiles')}
+              />
             </Stack>
-            <TreeList
-              key={epoch}
-              items={items}
-              density="compact"
-              variant="noGuides"
-              aria-label={t('directoryFiles')}
-            />
-          </Stack>
+          </ExpandedSideNavContent>
         ) : null}
         {workspace.recent.length ? (
           <RecentFiles

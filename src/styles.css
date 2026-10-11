@@ -12,6 +12,9 @@ body {
 .app-root {
   height: calc(100dvh / var(--app-zoom, 1));
 }
+.workspace-preferences-container {
+  container-type: inline-size;
+}
 .workspace-preferences {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -20,6 +23,19 @@ body {
 }
 .workspace-zoom {
   justify-self: end;
+}
+@container (max-width: 200px) {
+  .workspace-preferences {
+    grid-template-columns: 16px minmax(0, 1fr);
+  }
+  .preference-caption,
+  .zoom-caption {
+    display: none;
+  }
+  .workspace-zoom {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
 .app-root .astryx-mobile-nav {
   inset-inline-end: calc(100vw * (1 - 1 / var(--app-zoom, 1)));
@@ -161,6 +177,12 @@ body {
   min-height: 18rem;
   resize: none;
   overflow: hidden;
+}
+.inspector-content .inspector-large-editor textarea {
+  field-sizing: fixed;
+  height: calc(100dvh / var(--app-zoom, 1) - 300px);
+  min-height: 8rem;
+  overflow: auto;
 }
 .status-bar {
   border-block-start: 1px solid var(--color-border);

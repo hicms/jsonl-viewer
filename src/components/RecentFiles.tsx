@@ -4,6 +4,7 @@ import { SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Button } from '@astryxdesign/core/Button';
 import { History, Trash2 } from 'lucide-react';
+import { ExpandedSideNavContent } from './ExpandedSideNavContent';
 
 export function RecentFiles({
   paths,
@@ -38,12 +39,14 @@ export function RecentFiles({
           </div>
         ))}
         {paths.length > 5 ? (
-          <Button
-            label={expanded ? t('collapse') : t('showMore', { count: paths.length - 5 })}
-            variant="ghost"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((value) => !value)}
-          />
+          <ExpandedSideNavContent>
+            <Button
+              label={expanded ? t('collapse') : t('showMore', { count: paths.length - 5 })}
+              variant="ghost"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((value) => !value)}
+            />
+          </ExpandedSideNavContent>
         ) : null}
       </SideNavSection>
     </section>

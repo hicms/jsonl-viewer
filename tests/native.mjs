@@ -16,6 +16,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPreferences, closeNavigation, setZoom, verifyLayout } from './layout-native.mjs';
 import { verifyInspector } from './inspector-native.mjs';
+import { verifyJsonDocument } from './json-document-native.mjs';
+import { verifySidebarCollapse } from './collapse-native.mjs';
 import { verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -178,6 +180,10 @@ try {
   checks.push(
     'two-row toolbar, column visibility during empty search, sidebar preferences at 720/1280 widths and 100/150% zoom',
   );
+  await verifySidebarCollapse(page, artifacts);
+  checks.push(
+    'sidebar collapse hides expanded content, retains filter and width, restores via keyboard, supports drag collapse, mobile drawer and reload',
+  );
   await page.screenshot({ path: path.join(artifacts, 'native-table.png') });
   await page.getByRole('textbox', { name: '搜索已加载内容' }).fill('内存使用');
   await expect(page.getByRole('table').getByText('内存使用情况')).toBeVisible();
@@ -335,7 +341,9 @@ try {
     window.__loadingFrames = [];
     const sample = () => {
       const status = document.querySelector('.view-area [role="status"]');
-      if (status?.querySelector('.astryx-skeleton'))
+      const skeleton = status?.querySelector('.astryx-skeleton');
+      const bounds = skeleton?.getBoundingClientRect();
+      if (bounds?.width && bounds.height && getComputedStyle(skeleton).visibility === 'visible')
         window.__loadingFrames.push(status.getAttribute('aria-label'));
       window.__loadingSampler = requestAnimationFrame(sample);
     };
@@ -343,11 +351,14 @@ try {
   });
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 10 });
   await page.getByRole('button', { name: '表格', exact: true }).click();
-  await expect(page.getByRole('status', { name: '正在加载表格' })).toBeVisible();
-  await page.screenshot({ path: path.join(artifacts, 'native-skeleton.png') });
+  await expect.poll(() => page.evaluate(() => window.__loadingFrames)).toContain('正在加载表格');
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   await expect(page.getByRole('table')).toBeVisible();
-  expect(await page.evaluate(() => window.__loadingFrames)).toContain('正在加载表格');
+  writeFileSync(
+    path.join(artifacts, 'native-loading-frames.json'),
+    JSON.stringify(await page.evaluate(() => window.__loadingFrames)),
+  );
+  await page.screenshot({ path: path.join(artifacts, 'native-table-loaded.png') });
   expect(await page.getByRole('table').innerText()).not.toContain('long agent output '.repeat(300));
   await page.getByRole('button', { name: '树形', exact: true }).click();
   await expect(page.getByRole('tree', { name: 'JSON 树' })).toBeVisible();
@@ -612,6 +623,18 @@ try {
     'overlay inspector keeps main layout; half viewport capped at 960px, full height at all zooms; single scrolling body, real edit/save and invalid draft retention',
   );
   expect(errors).toEqual([]);
+  await verifyJsonDocument({
+    page,
+    directory,
+    artifacts,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    'multiline JSON: complete table/tree/raw views, keyboard edit, real full-document save and reopen with 1200 entries preserved',
+  );
   await verifyLanguages({
     page,
     directory,
@@ -631,7 +654,8 @@ try {
     await browser
       .contexts()[0]
       .pages()[0]
-      .screenshot({ path: path.join(artifacts, 'native-failure.png') });
+      .screenshot({ path: path.join(artifacts, 'native-failure.png') })
+      .catch(() => {});
   throw error;
 } finally {
   if (processHandle.pid && processHandle.exitCode === null && processHandle.signalCode === null)

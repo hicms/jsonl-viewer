@@ -19,11 +19,13 @@ export function WorkspacePreferences({
 }) {
   const { t, preference, setPreference } = useI18n();
   return (
-    <Stack padding={2}>
+    <Stack padding={2} className="workspace-preferences-container">
       <div className="workspace-preferences">
         <Stack direction="horizontal" align="center" gap={2}>
           <Globe size={16} />
-          <Text type="supporting">{t('language')}</Text>
+          <Text type="supporting" className="preference-caption">
+            {t('language')}
+          </Text>
         </Stack>
         <Selector
           label={t('language')}
@@ -40,7 +42,9 @@ export function WorkspacePreferences({
         />
         <Stack direction="horizontal" align="center" gap={2}>
           {mode === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-          <Text type="supporting">{t('themeMode')}</Text>
+          <Text type="supporting" className="preference-caption">
+            {t('themeMode')}
+          </Text>
         </Stack>
         <Selector
           label={t('themeMode')}
@@ -55,7 +59,9 @@ export function WorkspacePreferences({
           width="fill"
           size="sm"
         />
-        <Text type="supporting">{t('zoom')}</Text>
+        <Text type="supporting" className="zoom-caption">
+          {t('zoom')}
+        </Text>
         <Stack direction="horizontal" align="center" gap={1} className="workspace-zoom">
           <IconButton
             label={t('zoomOut')}

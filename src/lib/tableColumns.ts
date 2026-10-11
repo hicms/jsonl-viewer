@@ -13,7 +13,9 @@ export function tableFields(lines: Line[]): TableField[] {
   }
   return [
     ...Array.from(keys, (key) => ({ id: `field:${encodeURIComponent(key)}`, key })),
-    ...(hasValue ? [{ id: 'internal:value', key: null }] : []),
+    ...(hasValue || (lines.length > 0 && keys.size === 0)
+      ? [{ id: 'internal:value', key: null }]
+      : []),
   ];
 }
 

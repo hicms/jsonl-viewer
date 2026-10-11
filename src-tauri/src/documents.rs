@@ -1,5 +1,6 @@
 use crate::{
     error::{Error, Result},
+    json_document,
     reader::{self, Cursor, Fingerprint, Line},
     traces,
 };
@@ -65,7 +66,11 @@ impl Document {
     }
     fn reload(&mut self, limit: usize) -> Result<()> {
         let fingerprint = reader::fingerprint(&self.path)?;
-        let page = reader::read_page(&self.path, Cursor::default(), limit)?;
+        let page = if json_document::is_document(&self.path) {
+            json_document::read(&self.path)?
+        } else {
+            reader::read_page(&self.path, Cursor::default(), limit)?
+        };
         if reader::fingerprint(&self.path)? != fingerprint {
             return Err(Error::Conflict);
         }
@@ -137,7 +142,8 @@ impl Documents {
             return Err(Error::Conflict);
         }
         let size = fs::metadata(&doc.path)?.len();
-        if !doc.has_more
+        if !json_document::is_document(&doc.path)
+            && !doc.has_more
             && size > doc.fingerprint.size
             && reader::prefix_matches(&doc.path, &doc.fingerprint)?
         {
@@ -177,11 +183,10 @@ impl Documents {
             return Err(Error::Conflict);
         }
         source.seek(SeekFrom::Start(0))?;
+        let is_json = json_document::is_document(&doc.path);
         let mut replacements = BTreeMap::new();
         for edit in edits {
-            if edit.index >= doc.fingerprint.total_lines
-                || !doc.lines.iter().any(|line| line.index == edit.index)
-            {
+            if !doc.lines.iter().any(|line| line.index == edit.index) {
                 return Err(Error::UnloadedEdit);
             }
             if !doc
@@ -195,32 +200,40 @@ impl Documents {
                 line: edit.index + 1,
                 message: error.to_string(),
             })?;
-            if edit.raw.contains(['\r', '\n']) {
+            if !is_json && edit.raw.contains(['\r', '\n']) {
                 return Err(Error::MultilineEdit);
             }
             replacements.insert(edit.index, edit.raw);
         }
         let parent = target.parent().ok_or(Error::InvalidPath)?;
         let mut output = tempfile::NamedTempFile::new_in(parent)?;
-        let mut reader = BufReader::new(&mut source);
-        let mut bytes = Vec::new();
-        let mut index = 0;
-        loop {
-            bytes.clear();
-            if reader.read_until(b'\n', &mut bytes)? == 0 {
-                break;
-            }
-            if let Some(raw) = replacements.get(&index) {
-                output.write_all(raw.as_bytes())?;
-                if bytes.ends_with(b"\r\n") {
-                    output.write_all(b"\r\n")?;
-                } else if bytes.ends_with(b"\n") {
-                    output.write_all(b"\n")?;
-                }
+        if is_json {
+            if let Some(raw) = replacements.get(&0) {
+                json_document::write_edit(&mut output, raw, &doc.lines[0].raw)?;
             } else {
-                output.write_all(&bytes)?;
+                std::io::copy(&mut source, &mut output)?;
             }
-            index += 1;
+        } else {
+            let mut reader = BufReader::new(&mut source);
+            let mut bytes = Vec::new();
+            let mut index = 0;
+            loop {
+                bytes.clear();
+                if reader.read_until(b'\n', &mut bytes)? == 0 {
+                    break;
+                }
+                if let Some(raw) = replacements.get(&index) {
+                    output.write_all(raw.as_bytes())?;
+                    if bytes.ends_with(b"\r\n") {
+                        output.write_all(b"\r\n")?;
+                    } else if bytes.ends_with(b"\n") {
+                        output.write_all(b"\n")?;
+                    }
+                } else {
+                    output.write_all(&bytes)?;
+                }
+                index += 1;
+            }
         }
         output
             .as_file()

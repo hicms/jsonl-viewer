@@ -74,6 +74,11 @@ export function Inspector({
         {line.parseError ? <Text color="secondary">{line.parseError}</Text> : null}
         {editMode ? (
           <TextArea
+            className={
+              draft.length > 100_000 || draft.split('\n').length > 1000
+                ? 'inspector-large-editor'
+                : undefined
+            }
             label={t('editJson')}
             value={draft}
             onChange={change}
@@ -83,7 +88,7 @@ export function Inspector({
           />
         ) : (
           <CodeBlock
-            code={tab === 'raw' ? line.raw : stringify(line.value, true)}
+            code={tab === 'raw' || line.parseError ? line.raw : stringify(line.value, true)}
             language="json"
             isWrapped
             width="100%"
@@ -99,7 +104,7 @@ export function Inspector({
           variant="ghost"
           onClick={() =>
             void navigator.clipboard
-              .writeText(tab === 'raw' ? line.raw : stringify(line.value, true))
+              .writeText(tab === 'raw' || line.parseError ? line.raw : stringify(line.value, true))
               .catch(report)
           }
         />

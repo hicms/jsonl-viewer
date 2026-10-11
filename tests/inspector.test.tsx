@@ -24,3 +24,17 @@ it('records both valid edits and unfinished invalid drafts immediately', () => {
   fireEvent.change(input, { target: { value: '{"a":' } });
   expect(edit).toHaveBeenLastCalledWith('{"a":', null, expect.any(String));
 });
+
+it('shows the original invalid document instead of a synthetic null value', () => {
+  const raw = '{\n  "incomplete":';
+  const { container } = render(
+    <Inspector
+      line={{ index: 0, raw, value: null, parseError: 'EOF while parsing a value' }}
+      editMode={false}
+      onClose={() => {}}
+      onEdit={() => {}}
+      report={() => {}}
+    />,
+  );
+  expect(container.querySelector('pre code')?.textContent).toBe(raw.replaceAll('\n', ''));
+});
