@@ -161,18 +161,22 @@ function Application({
       (action) => menuAction.current(action),
       () => menuAction.current('quit'),
     )
-      .then((dispose) => {
-        if (stopped) dispose();
-        else cleanup = dispose;
+      .then(async (dispose) => {
+        if (stopped) {
+          dispose();
+          return;
+        }
+        cleanup = dispose;
+        if (isNative) {
+          const paths = await api.startup();
+          if (!stopped) {
+            for (const path of paths) void workspaceRef.current.open(path);
+          }
+        }
       })
-      .catch(workspace.report);
-    if (isNative)
-      void api
-        .startup()
-        .then((paths) => {
-          for (const path of paths) void workspaceRef.current.open(path);
-        })
-        .catch(workspace.report);
+      .catch((error) => {
+        if (!stopped) workspaceRef.current.report(error);
+      });
     return () => {
       stopped = true;
       cleanup?.();

@@ -25,7 +25,7 @@ Files load in batches of 1,000 non-empty records. Table, tree, and raw text view
 
 ## Development
 
-Windows requires Rust stable, MSVC C++ Build Tools, Node.js 22.12+, and the WebView2 Runtime.
+Requires Node.js 22.12+ and rustup; `rust-toolchain.toml` pins Rust. Windows also needs MSVC C++ Build Tools and WebView2; macOS needs Xcode Command Line Tools; Linux needs WebKitGTK 4.1, GTK 3, OpenSSL and the other [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```powershell
 npm ci
@@ -37,8 +37,9 @@ npm run desktop
 ```powershell
 npm run build                         # TypeScript checks and frontend build
 npm test                              # Frontend state and editing regressions
-cargo test --manifest-path src-tauri/Cargo.toml --no-default-features
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+npm run test:release                   # Release regressions; requires PowerShell 7 and Git
+cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
+cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
 npm run tauri -- build --debug --no-bundle
 npm run test:native                    # Windows WebView2 with real file reads and writes
 npm run desktop:build                  # Release EXE and NSIS installer
@@ -47,6 +48,44 @@ npm run desktop:build                  # Release EXE and NSIS installer
 On Windows, `npm run desktop:build` outputs `src-tauri/target/release/JSONL Viewer.exe` and `src-tauri/target/release/bundle/nsis/JSONL Viewer_2.0.0_x64-setup.exe`.
 
 Native tests create files in the system temporary directory and leave the project's sample files unchanged. Close any running JSONL Viewer instance before testing so that the single-instance process does not receive the test arguments. Screenshots are written to the temporary directory by default; set `JSONL_QA_ARTIFACT_DIR` to choose where to save them.
+
+## CI and Releases
+
+GitHub Actions runs `CI` on branch pushes, pull requests and manual dispatches. Pushing a stable `vX.Y.Z` tag runs the same checks and builds through `Release`, then publishes a GitHub Release. Manually dispatching `Release` generates preview artifacts only; it does not create a tag or publish a release.
+
+| Platform | Architectures | Installers |
+|---|---|---|
+| Linux | x64, ARM64 | `.deb`, `.AppImage` |
+| macOS | Intel x64, Apple Silicon ARM64 | `.dmg` |
+| Windows | x64, ARM64 | NSIS `.exe` |
+
+Assets use `JSONL-Viewer_<version>_<platform>-<architecture>`, for example `JSONL-Viewer_2.0.0_windows-arm64-setup.exe`. Each release contains eight installers and `SHA256SUMS.txt`. The CI `release-preview` artifact also includes release notes. `scripts/release-config.mjs` defines the platforms, architectures and asset names.
+
+Linux packages target Ubuntu 22.04 or compatible newer systems; AppImage may require FUSE 2. Windows ARM64 packages contain a native ARM64 app with an x86 NSIS installer. macOS packages are ad-hoc signed without Apple notarization; first launch may require approval in System Settings → Privacy & Security. Windows installers do not have a code signing certificate configured.
+
+CI runs Rust file I/O regressions and Clippy on all six platforms, plus frontend type checks, frontend tests and release tooling regressions. Windows runs real WebView2 file I/O tests. Linux/macOS use a desktop process startup smoke check, which does not cover complete GUI or Finder interactions.
+
+### Publish Manually
+
+Install PowerShell 7, Git, Node.js and GitHub CLI, and authenticate with `gh auth login`. Once the source and release workflows are pushed, start from a clean `main` matching `origin/main`:
+
+```powershell
+npm run release -- -Help
+npm run release -- -Publish                  # e.g. 2.0.0 -> 2.0.1
+npm run release -- -Publish -Version 2.1.0    # Choose a stable version
+```
+
+You can also run `pwsh -NoProfile -File scripts/release.ps1 -Publish` directly. The script updates `package.json`, `package-lock.json`, Tauri configuration, `Cargo.toml` and `Cargo.lock`, commits the version change, creates an annotated tag and atomically pushes `main` with the tag. An already committed, unpublished current version can be selected with `-Version` without an empty commit. Omitting `-Publish` makes no repository changes.
+
+The script waits for the release workflow matching the tag and commit, then confirms a public stable release with all nine non-empty assets. A failed push preserves the local commit/tag and prints a retry command. Failed workflow jobs can be rerun in Actions. Publication uploads to a draft, verifies every asset size and SHA-256 digest, then makes it public. Failed drafts from the same commit can be retried; published versions cannot be overwritten.
+
+Release notes retain commit titles and bodies, grouped into features, fixes, improvements and maintenance. They include the changes since the previous reachable stable tag, platform downloads, installation/update instructions and checksum verification. Preview notes for the current commit with:
+
+```powershell
+node scripts/generate-release-notes.mjs v2.0.0 .plan/release-notes.md --preview
+```
+
+The tag must match every manifest and lockfile version. No additional publishing secret is required; only the publish job uses `GITHUB_TOKEN` with `contents: write`. Certificate signing and automatic updates are not configured.
 
 ## Architecture
 
@@ -66,7 +105,7 @@ Native tests create files in the system temporary directory and leave the projec
 
 All interactive controls use Astryx directly. Custom CSS handles only window dimensions, scroll containers, and data layout. File dialogs, menus, and windows are provided by the native platform. Fonts and styles are bundled with the application, with no runtime CDN dependency.
 
-Windows native workflows have automated regression coverage. macOS and Linux have not been verified in the current environment. To build for another platform, install Tauri's prerequisites on that system and adjust the bundle targets. Files being continuously written may be temporarily locked by the writing process; drafts are retained if saving fails. Live updates parse only new lines, but file integrity checks read existing bytes, so refresh costs for very large files still grow with file size.
+Tauri platform configuration selects the appropriate installer formats automatically. Files being continuously written may be temporarily locked by the writing process; drafts are retained if saving fails. Live updates parse only new lines, but file integrity checks read existing bytes, so refresh costs for very large files still grow with file size.
 
 ## Component Documentation
 

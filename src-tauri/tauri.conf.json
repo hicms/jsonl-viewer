@@ -18,7 +18,7 @@
     "active": true,
     "targets": ["nsis"],
     "resources": { "../LICENSE": "LICENSE", "../THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt" },
-    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "icon": ["icons/icon.png", "icons/icon.ico", "icons/icon.icns"],
     "fileAssociations": [{ "ext": ["jsonl", "ndjson"], "name": "JSON Lines", "description": "JSON Lines data", "role": "Viewer" }],
     "shortDescription": "JSON Lines and agent session viewer"
   }

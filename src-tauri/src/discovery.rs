@@ -105,7 +105,7 @@ pub fn sources(home: &Path) -> Result<Vec<Source>> {
             if path.is_dir() {
                 scan(&path, 0, &mut files)?;
             }
-            files.sort_by(|a, b| b.modified.cmp(&a.modified));
+            files.sort_by_key(|file| std::cmp::Reverse(file.modified));
             files.truncate(20);
             // Only recent files need format probing; scanning avoids parsing every session.
             for file in &mut files {

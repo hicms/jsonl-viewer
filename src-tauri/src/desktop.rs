@@ -2,6 +2,7 @@ use crate::{
     discovery::{self, Entry, Source},
     documents::{Documents, Edit, Snapshot},
     error::{CommandError, Error},
+    open_requests::OpenRequests,
 };
 use std::{
     path::PathBuf,
@@ -13,7 +14,7 @@ use tauri::{Emitter, Manager, State};
 #[derive(Clone, Default)]
 struct AppState {
     documents: Arc<Mutex<Documents>>,
-    startup: Arc<Mutex<Vec<String>>>,
+    startup: Arc<Mutex<OpenRequests>>,
 }
 
 async fn work<T: Send + 'static>(
@@ -140,9 +141,21 @@ async fn trace_sources() -> Result<Vec<Source>, CommandError> {
 }
 #[tauri::command]
 fn startup_files(state: State<'_, AppState>) -> Result<Vec<String>, CommandError> {
-    Ok(std::mem::take(&mut *state.startup.lock().map_err(|e| {
-        CommandError::from(Error::Invalid(e.to_string()))
-    })?))
+    Ok(state
+        .startup
+        .lock()
+        .map_err(|e| CommandError::from(Error::Invalid(e.to_string())))?
+        .start())
+}
+
+fn receive_paths(app: &tauri::AppHandle, paths: Vec<String>) {
+    let state = app.state::<AppState>();
+    if let Ok(mut requests) = state.startup.lock() {
+        let ready = requests.receive(paths);
+        if !ready.is_empty() {
+            let _ = app.emit("open-paths", ready);
+        }
+    };
 }
 
 fn paths(args: impl IntoIterator<Item = String>) -> Vec<String> {
@@ -159,10 +172,14 @@ fn set_locale(app: tauri::AppHandle, locale: String) -> Result<(), CommandError>
 
 pub fn run() {
     let state = AppState::default();
-    *state.startup.lock().expect("startup state") = paths(std::env::args().skip(1));
+    state
+        .startup
+        .lock()
+        .expect("startup state")
+        .receive(paths(std::env::args().skip(1)));
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _| {
-            let _ = app.emit("open-paths", paths(args.into_iter().skip(1)));
+            receive_paths(app, paths(args.into_iter().skip(1)));
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_focus();
             }
@@ -198,6 +215,21 @@ pub fn run() {
         .on_menu_event(|app, event| {
             let _ = app.emit("menu-action", event.id().as_ref());
         })
-        .run(tauri::generate_context!())
-        .expect("failed to run JSONL Viewer");
+        .build(tauri::generate_context!())
+        .expect("failed to build JSONL Viewer")
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = event {
+                receive_paths(
+                    app,
+                    paths(urls.into_iter().filter_map(|url| {
+                        url.to_file_path()
+                            .ok()
+                            .map(|path| path.to_string_lossy().into_owned())
+                    })),
+                );
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }

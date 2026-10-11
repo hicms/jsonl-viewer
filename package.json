@@ -3,6 +3,7 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
+  "repository": "https://github.com/hicms/jsonl-viewer",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
@@ -13,6 +14,8 @@
     "test": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:native": "node tests/native.mjs",
+    "test:release": "node --test tests/release-*.test.mjs",
+    "release": "pwsh -NoProfile -File scripts/release.ps1",
     "format": "prettier --write src tests vite.config.ts",
     "format:check": "prettier --check src tests vite.config.ts",
     "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"

@@ -1,0 +1,4 @@
+{
+  "mainBinaryName": "jsonl-viewer",
+  "bundle": { "targets": ["deb", "appimage"] }
+}

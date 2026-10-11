@@ -25,7 +25,7 @@
 
 ## 开发
 
-Windows 需要 Rust stable、MSVC C++ Build Tools、Node.js 22.12+ 和 WebView2 Runtime。
+需要 Node.js 22.12+ 和 rustup；Rust 版本由 `rust-toolchain.toml` 固定。Windows 还需要 MSVC C++ Build Tools 和 WebView2 Runtime；macOS 需要 Xcode Command Line Tools；Linux 需要 WebKitGTK 4.1、GTK 3、OpenSSL 和其他 [Tauri 系统依赖](https://v2.tauri.app/start/prerequisites/)。
 
 ```powershell
 npm ci
@@ -37,8 +37,9 @@ npm run desktop
 ```powershell
 npm run build                         # TypeScript 与前端构建
 npm test                              # 前端状态与编辑回归
-cargo test --manifest-path src-tauri/Cargo.toml --no-default-features
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+npm run test:release                   # 发布回归，需要 PowerShell 7 和 Git
+cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
+cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
 npm run tauri -- build --debug --no-bundle
 npm run test:native                    # Windows WebView2，真实文件读写
 npm run desktop:build                  # Release EXE 与 NSIS 安装包
@@ -47,6 +48,44 @@ npm run desktop:build                  # Release EXE 与 NSIS 安装包
 Windows 下，`npm run desktop:build` 生成 `src-tauri/target/release/JSONL Viewer.exe` 和 `src-tauri/target/release/bundle/nsis/JSONL Viewer_2.0.0_x64-setup.exe`。
 
 原生测试在系统临时目录创建测试文件，不修改项目中的样例。请先关闭正在运行的 JSONL Viewer，避免单实例进程接收测试参数。截图默认写入临时目录；可设置 `JSONL_QA_ARTIFACT_DIR` 保存截图。
+
+## CI 与发布
+
+GitHub Actions 的 `CI` 工作流在分支推送、Pull Request 和手动运行时检查并打包。`Release` 工作流在推送 `vX.Y.Z` 稳定版本 Tag 时运行相同构建，通过全部检查后发布 GitHub Release。手动运行 `Release` 仅生成预览产物，不创建 Tag 或公开版本。
+
+| 平台 | 架构 | 安装包 |
+|---|---|---|
+| Linux | x64、ARM64 | `.deb`、`.AppImage` |
+| macOS | Intel x64、Apple Silicon ARM64 | `.dmg` |
+| Windows | x64、ARM64 | NSIS `.exe` |
+
+产物名称为 `JSONL-Viewer_<版本>_<平台>-<架构>`，例如 `JSONL-Viewer_2.0.0_windows-arm64-setup.exe`。每次发布包括 8 个安装包和 `SHA256SUMS.txt`；CI 的 `release-preview` Artifact 还包含发布说明。平台、架构和文件名统一定义在 `scripts/release-config.mjs`。
+
+Linux 构建以 Ubuntu 22.04 为基线，AppImage 可能需要 FUSE 2。Windows ARM64 应用使用原生 ARM64 二进制，NSIS 安装器使用 x86 模拟运行。macOS 包使用临时签名，未经过 Apple 公证，首次打开可能需要在“系统设置 → 隐私与安全性”中允许。Windows 安装包未配置代码签名。
+
+CI 在六个平台运行 Rust 文件读写回归与 Clippy，并进行前端类型检查、前端测试和发布脚本回归。Windows 运行真实 WebView2 文件读写回归；Linux/macOS 运行桌面进程启动检查，这不覆盖完整 GUI 或 Finder 交互。
+
+### 手动发版
+
+安装 PowerShell 7、Git、Node.js 和 GitHub CLI，并运行 `gh auth login`。在包含发布工作流的代码已推送后，从干净且与 `origin/main` 一致的 `main` 执行：
+
+```powershell
+npm run release -- -Help
+npm run release -- -Publish                  # 例如 2.0.0 -> 2.0.1
+npm run release -- -Publish -Version 2.1.0    # 指定稳定版本
+```
+
+也可以直接运行 `pwsh -NoProfile -File scripts/release.ps1 -Publish`。脚本同步 `package.json`、`package-lock.json`、Tauri 配置、`Cargo.toml` 和 `Cargo.lock`，提交版本更新，创建 annotated Tag，并原子推送 `main` 与 Tag。已有但尚未发版的当前版本可以通过 `-Version` 指定，不会生成空提交。缺少 `-Publish` 时不修改仓库。
+
+脚本等待对应 Tag 和提交的 Release 工作流，确认公开版本包含全部 9 个非空文件后报告成功。推送失败时保留本地提交和 Tag，并显示重试命令；工作流失败时可在 Actions 中重跑失败任务。发布先上传到草稿，核对全部文件大小及 SHA-256 后再公开；同一提交的失败草稿可以重试，已经公开的版本不覆盖。
+
+Release 说明按功能、修复、改进和维护归类保留提交标题与正文，附上从上一个可达稳定 Tag 开始的变更链接、安装表、更新说明和校验方法。预览当前提交的说明：
+
+```powershell
+node scripts/generate-release-notes.mjs v2.0.0 .plan/release-notes.md --preview
+```
+
+Tag 版本必须与全部清单和锁文件一致。不配置额外发布密钥；只有发布 Job 使用仓库 `GITHUB_TOKEN` 的 `contents: write` 权限。代码签名证书与自动更新功能未配置。
 
 ## 架构
 
@@ -66,7 +105,7 @@ Windows 下，`npm run desktop:build` 生成 `src-tauri/target/release/JSONL Vie
 
 所有交互控件直接使用 Astryx。自定义 CSS 仅处理窗口尺寸、滚动容器和数据排版；系统文件对话框、菜单和窗口由原生平台提供。字体和样式随应用打包，无运行时 CDN 依赖。
 
-Windows 原生流程有自动化回归。macOS/Linux 未在当前环境验证；如需构建其他平台，应在对应系统安装 Tauri 前置依赖并调整 bundle targets。持续写入的文件可能暂时被写入进程锁定，保存失败时草稿会保留。实时更新只解析新行；文件完整性检查会读取已有字节，因此极大文件的刷新成本仍随文件大小增加。
+各平台的安装格式由 Tauri 平台配置自动选择。持续写入的文件可能暂时被写入进程锁定，保存失败时草稿会保留。实时更新只解析新行；文件完整性检查会读取已有字节，因此极大文件的刷新成本仍随文件大小增加。
 
 ## 组件文档
 
