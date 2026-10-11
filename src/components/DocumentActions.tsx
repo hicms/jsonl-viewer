@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n';
+import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Pencil, Save } from 'lucide-react';
 import type { Session } from '../lib/types';
@@ -28,7 +29,7 @@ export function DocumentActions({
           }}
         />
       ) : null}
-      <IconButton
+      <Button
         label={t('save')}
         tooltip={t('saveFile')}
         icon={<Save size={16} />}

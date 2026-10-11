@@ -6,11 +6,12 @@ A local desktop tool built with Rust, Tauri 2, React 19, and Astryx for viewing 
 
 ## Usage
 
-- Open, drag and drop, or double-click `.jsonl` / `.ndjson` files. `.json`, `.log`, and `.txt` files can also be read line by line.
+- Open, drag and drop, or double-click `.jsonl` / `.ndjson` files. `.log` and `.txt` files are also read line by line. `.json` files are read as one complete JSON document, including multiline objects and arrays; raw view preserves the original text.
 - Table, tree, raw text, and session views, with search across loaded content, row details, copying, column visibility, and column resizing.
-- Row details overlay the right side of the window without shrinking the main content. The panel uses 50% of the window width, up to 960 pixels, and fills the content viewport height. The title, edit/save actions, and copy action stay fixed while the content scrolls in a single area.
+- Row details overlay the right side of the window without shrinking the main content. The panel uses 50% of the window width, up to 960 pixels, and fills the content viewport height. The title, edit/save actions, and copy action stay fixed while the content scrolls. Large drafts use a bounded, scrolling editor.
 - Switching views first displays an Astryx skeleton screen, then builds the data view. Table and tree views show short previews of long text; full JSON is available in row details or expanded rows.
 - Automatically detects STS, Codex, Claude Code, Pi, and Hermes sessions and displays messages, thinking, tool calls and results, models, reasoning effort, and token usage.
+- The desktop sidebar keeps file actions at the top and language, appearance, and zoom at the bottom. In narrow windows, these settings are available by scrolling the navigation drawer. Document save/edit controls sit beside the title; view and column controls sit above full-width search. Column choices persist and remain available while filtering loaded records.
 - Multiple file tabs, directory browsing, recent files, session sources, and navigation between parent and child sessions.
 - Recent files retain up to 50 entries. The sidebar initially shows 5 entries and can expand to show more. Hovering over or focusing a history entry reveals a trash icon that removes only that entry. Close buttons are always visible on the active file tab and open-file sidebar entries; other files show them on hover or keyboard focus. Unsaved changes prompt for confirmation before closing.
 - Save and error notifications appear at the bottom right. The newest notification sits 80 pixels above the window bottom, independent of application zoom; additional notifications stack upward.
@@ -21,7 +22,7 @@ A local desktop tool built with Rust, Tauri 2, React 19, and Astryx for viewing 
 - Light, dark, and system appearance, using the Astryx Neutral theme, with 80%–150% zoom.
 - English and Simplified Chinese UI. Choose System, English, or 简体中文 in the file browser's Language selector. System is the default: a Chinese system language selects Simplified Chinese; other languages fall back to English. Manual choices persist across restarts. Switching languages retains open files, drafts, and view state; source data and technical diagnostics are preserved.
 
-Files load in batches of 1,000 non-empty records. Table, tree, and raw text views display 100 loaded records per page. Search covers only currently loaded content. Rust saves files by merging edited rows into the complete source file, preserving unloaded content, untouched whitespace, and line endings. It refuses to overwrite files that have changed externally. Saving a complete copy with Save As retains drafts for the source file.
+JSON Lines files load in batches of 1,000 non-empty records. Table, tree, and raw text views display 100 loaded records per page. Search covers only currently loaded content. Rust saves JSON Lines files by merging edited rows into the complete source file, preserving unloaded content, untouched whitespace, and line endings. JSON documents load in full as one record; saving an edit replaces the complete value with two-space indentation, preserving the BOM and newline convention. Saving without edits preserves the original bytes. Both formats refuse to overwrite files that have changed externally. Saving a complete copy with Save As retains drafts for the source file.
 
 ## Development
 

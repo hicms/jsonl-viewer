@@ -14,7 +14,10 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { openPreferences, closeNavigation, setZoom, verifyLayout } from './layout-native.mjs';
 import { verifyInspector } from './inspector-native.mjs';
+import { verifyJsonDocument } from './json-document-native.mjs';
+import { verifySidebarCollapse } from './collapse-native.mjs';
 import { verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -164,6 +167,23 @@ try {
   await page.getByRole('combobox', { name: '主题模式' }).click();
   await page.getByRole('option', { name: '浅色', exact: true }).click();
   checks.push('Astryx theme Selector and dark mode');
+  await verifyLayout({
+    page,
+    artifacts,
+    directory,
+    logs,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    'two-row toolbar, column visibility during empty search, sidebar preferences at 720/1280 widths and 100/150% zoom',
+  );
+  await verifySidebarCollapse(page, artifacts);
+  checks.push(
+    'sidebar collapse hides expanded content, retains filter and width, restores via keyboard, supports drag collapse, mobile drawer and reload',
+  );
   await page.screenshot({ path: path.join(artifacts, 'native-table.png') });
   await page.getByRole('textbox', { name: '搜索已加载内容' }).fill('内存使用');
   await expect(page.getByRole('table').getByText('内存使用情况')).toBeVisible();
@@ -238,9 +258,9 @@ try {
   for (const width of [1280, 720]) {
     await page.setViewportSize({ width, height: 840 });
     await expect
-      .poll(async () => (await page.locator('.file-toolbar').boundingBox()).height)
+      .poll(async () => (await page.locator('.toolbar-options-row').boundingBox()).height)
       .toBeLessThanOrEqual(72);
-    const toolbarBox = await page.locator('.file-toolbar').boundingBox();
+    const toolbarBox = await page.locator('.toolbar-options-row').boundingBox();
     expect(toolbarBox.height).toBeLessThanOrEqual(72);
     for (const label of ['从旧到新', '展开详情', '宽屏']) {
       const box = await page.getByRole('button', { name: label, exact: true }).boundingBox();
@@ -302,8 +322,11 @@ try {
   expect(written).toHaveLength(6001);
   expect(JSON.parse(written.at(-1)).id).toBe(6000);
   checks.push('6001-line file paging and partial-load save retains entire original');
+  await page.getByRole('button', { name: '关闭详情', exact: true }).click();
   await page.setViewportSize({ width: 720, height: 600 });
-  await expect(page.getByRole('button', { name: '放大', exact: true })).toBeVisible();
+  await openPreferences(page);
+  await expect(page.getByRole('button', { name: '放大', exact: true })).toBeInViewport();
+  await closeNavigation(page);
   const footer = await page.locator('.status-bar').boundingBox();
   expect(footer.y + footer.height).toBeLessThanOrEqual(601);
   await page.screenshot({ path: path.join(artifacts, 'native-minimum.png') });
@@ -541,9 +564,7 @@ try {
   await expect(page.locator('[data-astryx-toast-fallback]')).toHaveCount(0);
   for (const zoom of [80, 150, 100]) {
     await page.setViewportSize({ width: 1280, height: 840 });
-    await page.getByRole('button', { name: /^\d+%$/ }).click();
-    for (let step = 0; step < Math.abs(zoom - 100) / 10; step++)
-      await page.getByRole('button', { name: zoom < 100 ? '缩小' : '放大', exact: true }).click();
+    await setZoom(page, zoom);
     for (const width of [1280, 720]) {
       await page.setViewportSize({ width, height: 840 });
       await expect
@@ -602,6 +623,18 @@ try {
     'overlay inspector keeps main layout; half viewport capped at 960px, full height at all zooms; single scrolling body, real edit/save and invalid draft retention',
   );
   expect(errors).toEqual([]);
+  await verifyJsonDocument({
+    page,
+    directory,
+    artifacts,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    'multiline JSON: complete table/tree/raw views, keyboard edit, real full-document save and reopen with 1200 entries preserved',
+  );
   await verifyLanguages({
     page,
     directory,
@@ -621,7 +654,8 @@ try {
     await browser
       .contexts()[0]
       .pages()[0]
-      .screenshot({ path: path.join(artifacts, 'native-failure.png') });
+      .screenshot({ path: path.join(artifacts, 'native-failure.png') })
+      .catch(() => {});
   throw error;
 } finally {
   if (processHandle.pid && processHandle.exitCode === null && processHandle.signalCode === null)

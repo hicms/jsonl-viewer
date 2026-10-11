@@ -18,14 +18,15 @@ import { Stack } from '@astryxdesign/core/Stack';
 import { Button } from '@astryxdesign/core/Button';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
-import { Selector } from '@astryxdesign/core/Selector';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { ToastViewport } from '@astryxdesign/core/Toast';
-import { FileJson, FolderOpen, MessagesSquare, X, Minus, Plus } from 'lucide-react';
+import { FileJson, FolderOpen, MessagesSquare, X, History } from 'lucide-react';
 import appLogo from '../src-tauri/icons/icon.svg';
+import { WorkspacePreferences } from './components/WorkspacePreferences';
+import { tableFields, updateHiddenColumns } from './lib/tableColumns';
 import { Explorer } from './components/Explorer';
 import { FileToolbar } from './components/FileToolbar';
 import { TableView } from './views/TableView';
@@ -63,13 +64,14 @@ function Application({
   mode,
   setMode,
 }: {
-  mode: string;
+  mode: 'light' | 'dark' | 'system';
   setMode: (value: 'light' | 'dark' | 'system') => void;
 }) {
   const { t, locale } = useI18n();
   const workspace = useWorkspace();
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [zoom, setZoom] = usePreference('zoom', 1);
+  const [hiddenColumns, setHiddenColumns] = usePreference<string[]>('hiddenColumns', []);
   const [closeIntent, setCloseIntent] = useState<{ ids: string[]; quit: boolean } | null>(null);
   const [siblings, setSiblings] = useState<Entry[]>([]);
   const folderAction = useRef<() => Promise<void>>(async () => {});
@@ -95,6 +97,10 @@ function Application({
     () => (active ? visibleLines(active) : []),
     [active?.snapshot.lines, active?.edits],
   );
+  const fields = useMemo(() => tableFields(lines), [lines]);
+  function showColumns(visible: string[]) {
+    setHiddenColumns((hidden) => updateHiddenColumns(hidden, fields, visible));
+  }
   const filtered = useMemo(() => {
     const query = active?.ui.filter.toLowerCase() ?? '';
     return query ? lines.filter((line) => line.raw.toLowerCase().includes(query)) : lines;
@@ -226,14 +232,9 @@ function Application({
             }
             endContent={
               <Stack direction="horizontal" gap={2} align="center">
-                <Button
-                  label={t('openFile')}
-                  icon={<FileJson size={16} />}
-                  variant="primary"
-                  onClick={() => void workspace.open()}
-                />
                 <MoreMenu
                   label={t('recentFiles')}
+                  icon={<History size={18} />}
                   items={
                     workspace.recent.length
                       ? [
@@ -247,36 +248,11 @@ function Application({
                       : [{ label: t('noRecentFiles'), isDisabled: true }]
                   }
                 />
-                <Selector
-                  label={t('themeMode')}
-                  isLabelHidden
-                  value={mode}
-                  onChange={(value) => setMode(value as 'light' | 'dark' | 'system')}
-                  options={[
-                    { value: 'light', label: t('light') },
-                    { value: 'dark', label: t('dark') },
-                    { value: 'system', label: t('system') },
-                  ]}
-                  width={112}
-                />
-                <IconButton
-                  label={t('zoomOut')}
-                  icon={<Minus size={15} />}
-                  variant="ghost"
-                  isDisabled={zoom <= 0.8}
-                  onClick={() => menuAction.current('zoom-out')}
-                />
                 <Button
-                  label={`${Math.round(zoom * 100)}%`}
-                  variant="ghost"
-                  onClick={() => setZoom(1)}
-                />
-                <IconButton
-                  label={t('zoomIn')}
-                  icon={<Plus size={15} />}
-                  variant="ghost"
-                  isDisabled={zoom >= 1.5}
-                  onClick={() => menuAction.current('zoom-in')}
+                  label={t('openFile')}
+                  icon={<FolderOpen size={16} />}
+                  variant="primary"
+                  onClick={() => void workspace.open()}
                 />
               </Stack>
             }
@@ -285,6 +261,14 @@ function Application({
         sideNav={
           <Explorer
             workspace={workspace}
+            footer={
+              <WorkspacePreferences
+                mode={mode}
+                setMode={setMode}
+                zoom={zoom}
+                onZoom={(action) => menuAction.current(action)}
+              />
+            }
             onSources={() => setSourcesOpen(true)}
             onClose={(id) => requestClose([id])}
             onFolderReady={(action) => {
@@ -356,17 +340,29 @@ function Application({
                 justify="between"
                 align="center"
                 paddingInline={4}
-                paddingBlock={3}
+                paddingBlock={4}
+                className="document-header"
               >
-                <Stack gap={1}>
-                  <Heading level={1}>{active.snapshot.name}</Heading>
+                <Stack gap={2} className="document-identity">
+                  <Heading level={3} maxLines={1}>
+                    {active.snapshot.name}
+                  </Heading>
                   <Text type="code" color="secondary" maxLines={1} hasTruncateTooltip>
                     {active.snapshot.path}
                   </Text>
                 </Stack>
-                {active.ui.changed ? <Text color="secondary">{t('diskChanged')}</Text> : null}
+                <Stack direction="horizontal" align="center" gap={2} className="document-actions">
+                  {active.ui.changed ? <Text color="secondary">{t('diskChanged')}</Text> : null}
+                  <DocumentActions session={active} workspace={workspace} />
+                </Stack>
               </Stack>
-              <FileToolbar session={active} workspace={workspace} />
+              <FileToolbar
+                session={active}
+                workspace={workspace}
+                fields={fields}
+                hiddenColumns={hiddenColumns}
+                onShowColumns={showColumns}
+              />
               {active.ui.view === 'trace' &&
               siblings.some(
                 (entry) => entry.trace?.parentThreadId === active.snapshot.trace?.id,
@@ -406,7 +402,12 @@ function Application({
                     ) : active.ui.view === 'raw' ? (
                       <RawView lines={filtered} onSelect={selectLine} />
                     ) : (
-                      <TableView lines={filtered} onSelect={selectLine} />
+                      <TableView
+                        lines={filtered}
+                        onSelect={selectLine}
+                        fields={fields}
+                        hiddenColumns={hiddenColumns}
+                      />
                     )}
                   </DeferredView>
                 </div>
@@ -446,7 +447,7 @@ function Application({
                 description={t('welcomeDescription')}
                 icon={<img src={appLogo} width={40} height={40} alt="" />}
                 actions={
-                  <Stack direction="horizontal" gap={2}>
+                  <Stack direction="horizontal" gap={2} wrap="wrap">
                     <Button
                       label={t('openFile')}
                       icon={<FileJson size={16} />}

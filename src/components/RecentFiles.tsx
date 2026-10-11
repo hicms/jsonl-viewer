@@ -1,11 +1,10 @@
 import { useI18n } from '../i18n';
 import { useState } from 'react';
-import { SideNavItem } from '@astryxdesign/core/SideNav';
-import { Stack } from '@astryxdesign/core/Stack';
-import { Text } from '@astryxdesign/core/Text';
+import { SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Button } from '@astryxdesign/core/Button';
 import { History, Trash2 } from 'lucide-react';
+import { ExpandedSideNavContent } from './ExpandedSideNavContent';
 
 export function RecentFiles({
   paths,
@@ -20,8 +19,7 @@ export function RecentFiles({
   const [expanded, setExpanded] = useState(false);
   return (
     <section aria-label={t('recentFiles')}>
-      <Stack gap={1}>
-        <Text color="secondary">{t('recentFiles')}</Text>
+      <SideNavSection title={t('recentFiles')}>
         {(expanded ? paths : paths.slice(0, 5)).map((path) => (
           <div key={path} className="file-item">
             <SideNavItem
@@ -41,14 +39,16 @@ export function RecentFiles({
           </div>
         ))}
         {paths.length > 5 ? (
-          <Button
-            label={expanded ? t('collapse') : t('showMore', { count: paths.length - 5 })}
-            variant="ghost"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((value) => !value)}
-          />
+          <ExpandedSideNavContent>
+            <Button
+              label={expanded ? t('collapse') : t('showMore', { count: paths.length - 5 })}
+              variant="ghost"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((value) => !value)}
+            />
+          </ExpandedSideNavContent>
         ) : null}
-      </Stack>
+      </SideNavSection>
     </section>
   );
 }

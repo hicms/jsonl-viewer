@@ -68,8 +68,13 @@ it('shows 5 history entries, expands to 50 and removes only the chosen history i
     );
   }
   const { unmount } = render(<Harness />);
-  const recent = screen.getByRole('region', { name: '最近文件' });
+  let recent = screen.getByRole('region', { name: '最近文件' });
   expect(within(recent).getAllByRole('button', { name: /^file-\d+\.jsonl$/ })).toHaveLength(5);
+  fireEvent.click(screen.getByRole('button', { name: '折叠侧边栏' }));
+  expect(screen.queryByRole('heading', { name: '文件浏览器' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /显示更多/ })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '展开侧边栏' }));
+  recent = screen.getByRole('region', { name: '最近文件' });
   fireEvent.click(within(recent).getByRole('button', { name: /显示更多/ }));
   expect(within(recent).getAllByRole('button', { name: /^file-\d+\.jsonl$/ })).toHaveLength(50);
   fireEvent.click(within(recent).getByRole('button', { name: '收起' }));

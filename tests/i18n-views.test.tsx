@@ -1,3 +1,4 @@
+import { tableFields } from '../src/lib/tableColumns';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { Theme } from '@astryxdesign/core/theme';
@@ -51,7 +52,9 @@ const traceUi: FileUi = {
 };
 
 it('translates Astryx pagination and row expansion while retaining their state and column preferences', () => {
-  const view = <TableView lines={lines} onSelect={() => {}} />;
+  const view = (
+    <TableView fields={tableFields(lines)} hiddenColumns={[]} lines={lines} onSelect={() => {}} />
+  );
   const { rerender } = render(localized('en', view));
   const first = screen.getByText('record-0').closest('tr')!;
   fireEvent.click(within(first).getByRole('button', { name: 'Expand row' }));

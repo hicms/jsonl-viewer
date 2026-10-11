@@ -10,6 +10,8 @@
   "dark": "深色",
   "system": "跟随系统",
   "language": "语言",
+  "zoom": "缩放",
+  "visibleColumns": "显示列",
   "zoomOut": "缩小",
   "zoomIn": "放大",
   "openFiles": "打开的文件",
