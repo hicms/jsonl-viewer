@@ -4,7 +4,6 @@ import {
   Table,
   pixel,
   useTableColumnResize,
-  useTableColumnSettings,
   useTableRowExpansion,
   type TableColumn,
   type TablePlugin,
@@ -18,20 +17,24 @@ import { Eye } from 'lucide-react';
 import { usePreference, stringify } from '../lib/preferences';
 import type { Line } from '../lib/types';
 import { jsonPreview } from '../lib/jsonPreview';
+import type { TableField } from '../lib/tableColumns';
 import { TableRowMenu } from '../components/TableRowMenu';
 
 type Row = Line & Record<string, unknown>;
 export const TableView = memo(function TableView({
   lines,
   onSelect,
+  fields,
+  hiddenColumns,
 }: {
+  fields: TableField[];
+  hiddenColumns: string[];
   lines: Line[];
   onSelect: (index: number) => void;
 }) {
   const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [widths, setWidths] = usePreference<Record<string, number>>('columnWidths', {});
-  const [hidden, setHidden] = usePreference<string[]>('hiddenColumns', []);
   const [expanded, setExpanded] = useState(new Set<string>());
   const toggleRow = useCallback((key: string) => {
     setExpanded((current) => {
@@ -41,34 +44,7 @@ export const TableView = memo(function TableView({
       return next;
     });
   }, []);
-  const keys = useMemo(
-    () => [
-      ...new Set(
-        lines.flatMap((line) =>
-          line.parseError
-            ? []
-            : line.value && typeof line.value === 'object' && !Array.isArray(line.value)
-              ? Object.keys(line.value)
-              : [],
-        ),
-      ),
-    ],
-    [lines],
-  );
-  const fields = [
-    ...keys.map((key) => ({
-      id: `field:${encodeURIComponent(key)}`,
-      label: key,
-      key: key as string | null,
-    })),
-    ...(lines.some(
-      (line) =>
-        !line.parseError &&
-        (line.value === null || typeof line.value !== 'object' || Array.isArray(line.value)),
-    )
-      ? [{ id: 'internal:value', label: t('value'), key: null }]
-      : []),
-  ];
+  const visibleFields = fields.filter((field) => !hiddenColumns.includes(field.id));
   const columns: TableColumn<Row>[] = [
     {
       key: 'internal:line',
@@ -80,27 +56,14 @@ export const TableView = memo(function TableView({
         </Text>
       ),
     },
-    {
-      key: 'internal:inspect',
-      header: '',
-      width: pixel(52),
-      renderCell: (row) => (
-        <IconButton
-          label={t('inspectLine', { line: row.index + 1 })}
-          icon={<Eye size={16} />}
-          variant="ghost"
-          onClick={() => onSelect(row.index)}
-        />
-      ),
-    },
-    ...fields.map((field) => ({
+    ...visibleFields.map((field) => ({
       key: field.id,
-      header: field.label,
+      header: field.key ?? t('value'),
       width: pixel(widths[field.id] ?? 220),
       resizable: true,
       renderCell: (row: Row) =>
         row.parseError ? (
-          field.id === fields[0]?.id ? (
+          field.id === visibleFields[0]?.id ? (
             <Badge label={t('jsonError')} variant="error" />
           ) : null
         ) : (
@@ -116,25 +79,24 @@ export const TableView = memo(function TableView({
           </Text>
         ),
     })),
+    {
+      key: 'internal:inspect',
+      header: '',
+      width: pixel(52),
+      renderCell: (row) => (
+        <IconButton
+          label={t('inspectLine', { line: row.index + 1 })}
+          icon={<Eye size={16} />}
+          variant="ghost"
+          onClick={() => onSelect(row.index)}
+        />
+      ),
+    },
   ];
   const resize = useTableColumnResize<Row>({
     columnWidths: widths,
     onColumnResizeEnd: (updates) => setWidths((current) => ({ ...current, ...updates })),
     minWidth: 70,
-  });
-  const settings = useTableColumnSettings<Row>({
-    columns: [
-      { key: 'internal:line', label: t('line'), isAlwaysVisible: true },
-      { key: 'internal:inspect', label: t('inspect'), isAlwaysVisible: true },
-      ...fields.map((field) => ({ key: field.id, label: field.label })),
-    ],
-    activeColumnKeys: [
-      'internal:line',
-      'internal:inspect',
-      ...fields.map((field) => field.id).filter((key) => !hidden.includes(key)),
-    ],
-    onChangeActiveColumnKeys: (active) =>
-      setHidden(fields.map((field) => field.id).filter((key) => !active.includes(key))),
   });
   const expansion = useTableRowExpansion<Row>({
     expandedKeys: expanded,
@@ -178,7 +140,7 @@ export const TableView = memo(function TableView({
           hasHover
           dividers="rows"
           textOverflow="truncate"
-          plugins={{ resize, settings, expansion: rowExpansion }}
+          plugins={{ resize, expansion: rowExpansion }}
         />
       </TableRowMenu>
       <Pagination

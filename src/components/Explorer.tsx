@@ -1,11 +1,10 @@
 import { useI18n } from '../i18n';
-import { useMemo, useState } from 'react';
-import { SideNav, SideNavItem } from '@astryxdesign/core/SideNav';
+import { useMemo, useState, type ReactNode } from 'react';
+import { SideNav, SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { IconButton } from '@astryxdesign/core/IconButton';
-import { Selector } from '@astryxdesign/core/Selector';
 import { TreeList, type TreeListItemData } from '@astryxdesign/core/TreeList';
 import { Folder, FolderOpen, FileJson, RefreshCw, X, MessagesSquare } from 'lucide-react';
 import { RecentFiles } from './RecentFiles';
@@ -18,13 +17,15 @@ export function Explorer({
   onSources,
   onFolderReady,
   onClose,
+  footer,
 }: {
+  footer?: ReactNode;
   workspace: WorkspaceController;
   onSources: () => void;
   onFolderReady: (action: () => Promise<void>) => void;
   onClose: (id: string) => void;
 }) {
-  const { t, preference, setPreference } = useI18n();
+  const { t } = useI18n();
   const [folder, setFolder] = useState<string | null>(null);
   const [cache, setCache] = useState<Record<string, Entry[]>>({});
   const [epoch, setEpoch] = useState(0);
@@ -86,7 +87,7 @@ export function Explorer({
       aria-label={t('fileBrowser')}
       resizable={{
         autoSaveId: 'jsonl-viewer:2:explorer',
-        defaultWidth: 260,
+        defaultWidth: 248,
         minWidth: 180,
         maxWidth: 440,
       }}
@@ -102,21 +103,8 @@ export function Explorer({
           />
         </Stack>
       }
-    >
-      <Stack gap={5} paddingBlock={3}>
-        <Selector
-          label={t('language')}
-          value={preference}
-          onChange={(value) => setPreference(value as 'system' | 'en' | 'zh-CN')}
-          options={[
-            { value: 'system', label: t('system') },
-            { value: 'en', label: 'English' },
-            { value: 'zh-CN', label: '简体中文' },
-          ]}
-          width="fill"
-        />
+      topContent={
         <Stack gap={1}>
-          <Text color="secondary">{t('open')}</Text>
           <SideNavItem
             label={t('file')}
             icon={<FileJson size={17} />}
@@ -133,9 +121,12 @@ export function Explorer({
             onClick={onSources}
           />
         </Stack>
+      }
+      footer={footer}
+    >
+      <Stack gap={4} paddingBlock={2}>
         {workspace.state.sessions.length ? (
-          <Stack gap={1}>
-            <Text color="secondary">{t('opened')}</Text>
+          <SideNavSection title={t('opened')}>
             {workspace.state.sessions.map((session) => (
               <div key={session.snapshot.id} className="file-item">
                 <SideNavItem
@@ -155,7 +146,7 @@ export function Explorer({
                 />
               </div>
             ))}
-          </Stack>
+          </SideNavSection>
         ) : null}
         {folder ? (
           <Stack gap={2}>

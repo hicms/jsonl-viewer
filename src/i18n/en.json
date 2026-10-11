@@ -10,6 +10,8 @@
   "dark": "Dark",
   "system": "System",
   "language": "Language",
+  "zoom": "Zoom",
+  "visibleColumns": "Visible columns",
   "zoomOut": "Zoom out",
   "zoomIn": "Zoom in",
   "openFiles": "Open files",

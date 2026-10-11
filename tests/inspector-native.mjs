@@ -1,3 +1,4 @@
+import { setZoom } from './layout-native.mjs';
 import { expect } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -47,9 +48,7 @@ export async function verifyInspector({ page, directory, artifacts, openFile }) 
   }
   for (const zoom of [80, 150, 100]) {
     await page.setViewportSize({ width: 1280, height: 840 });
-    await page.getByRole('button', { name: /^\d+%$/ }).click();
-    for (let step = 0; step < Math.abs(zoom - 100) / 10; step++)
-      await page.getByRole('button', { name: zoom < 100 ? '缩小' : '放大', exact: true }).click();
+    await setZoom(page, zoom);
     for (const width of [720, 1280, 2560]) {
       await page.setViewportSize({ width, height: 840 });
       let previous;
