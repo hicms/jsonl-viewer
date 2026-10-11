@@ -9,6 +9,7 @@ import {
   mkdirSync,
   rmSync,
   existsSync,
+  realpathSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -23,7 +24,8 @@ const { mainBinaryName } = JSON.parse(
 const exe =
   process.env.JSONL_QA_EXE ?? path.join(root, 'src-tauri/target/debug', `${mainBinaryName}.exe`);
 if (!existsSync(exe)) throw new Error('First run: npm run tauri -- build --debug --no-bundle');
-const directory = mkdtempSync(path.join(tmpdir(), 'jsonl-viewer-native-'));
+const temporaryRoot = realpathSync.native(tmpdir());
+const directory = mkdtempSync(path.join(temporaryRoot, 'jsonl-viewer-native-'));
 const artifacts = process.env.JSONL_QA_ARTIFACT_DIR ?? directory;
 mkdirSync(artifacts, { recursive: true });
 const logs = path.join(directory, 'logs.jsonl');
@@ -85,13 +87,30 @@ const processHandle = spawn(exe, [logs], {
     WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,
     WEBVIEW2_USER_DATA_FOLDER: path.join(directory, 'profile'),
   },
-  stdio: 'ignore',
+  stdio: ['ignore', 'pipe', 'pipe'],
   windowsHide: true,
+});
+const startupLog = path.join(artifacts, 'native-startup.log');
+writeFileSync(startupLog, `Executable: ${exe}\nNode architecture: ${process.arch}\n`);
+for (const output of [processHandle.stdout, processHandle.stderr])
+  output.on('data', (chunk) => appendFileSync(startupLog, chunk));
+let startupError;
+processHandle.once('error', (error) => {
+  startupError = error;
+  appendFileSync(startupLog, `${error.stack}\n`);
+});
+processHandle.once('exit', (code, signal) => {
+  appendFileSync(startupLog, `Process exit: ${code ?? signal}\n`);
 });
 let browser;
 const checks = [];
 try {
   for (let n = 0; n < 80; n++) {
+    if (startupError) throw startupError;
+    if (processHandle.exitCode !== null || processHandle.signalCode !== null)
+      throw new Error(
+        `Desktop exited before WebView2 connected: ${processHandle.exitCode ?? processHandle.signalCode}`,
+      );
     try {
       browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
       break;
@@ -598,7 +617,7 @@ try {
       .screenshot({ path: path.join(artifacts, 'native-failure.png') });
   throw error;
 } finally {
-  if (processHandle.exitCode === null)
+  if (processHandle.pid && processHandle.exitCode === null && processHandle.signalCode === null)
     execFileSync('taskkill', ['/PID', String(processHandle.pid), '/T', '/F'], {
       stdio: 'ignore',
       windowsHide: true,
@@ -607,7 +626,7 @@ try {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   const resolved = path.resolve(directory);
   if (
-    !resolved.startsWith(path.resolve(tmpdir()) + path.sep) ||
+    !resolved.startsWith(path.resolve(temporaryRoot) + path.sep) ||
     !path.basename(resolved).startsWith('jsonl-viewer-native-')
   )
     throw new Error('Unexpected cleanup target');

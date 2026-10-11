@@ -72,6 +72,10 @@ jobs:
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
       - name: Build installers
         run: npm run desktop:build -- --ci --target "${{ matrix.target }}" -- --locked
+      - name: Ensure WebView2 runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/ensure-webview2.ps1
       - name: Windows WebView2 regression
         if: runner.os == 'Windows'
         run: npm run test:native
@@ -85,7 +89,7 @@ jobs:
           WEBKIT_DISABLE_DMABUF_RENDERER: '1'
       - name: macOS desktop launch
         if: runner.os == 'macOS'
-        run: node tests/desktop-smoke.mjs "src-tauri/target/${{ matrix.target }}/release/bundle/macos/JSONL Viewer.app/Contents/MacOS/JSONL Viewer"
+        run: bash tests/macos-smoke.sh "${{ matrix.target }}"
       - name: Collect platform installers
         run: node scripts/release-assets.mjs package "${{ matrix.id }}" release-assets
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
