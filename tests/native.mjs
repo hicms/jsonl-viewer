@@ -318,7 +318,9 @@ try {
     window.__loadingFrames = [];
     const sample = () => {
       const status = document.querySelector('.view-area [role="status"]');
-      if (status?.querySelector('.astryx-skeleton'))
+      const skeleton = status?.querySelector('.astryx-skeleton');
+      const bounds = skeleton?.getBoundingClientRect();
+      if (bounds?.width && bounds.height && getComputedStyle(skeleton).visibility === 'visible')
         window.__loadingFrames.push(status.getAttribute('aria-label'));
       window.__loadingSampler = requestAnimationFrame(sample);
     };
@@ -326,11 +328,14 @@ try {
   });
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 10 });
   await page.getByRole('button', { name: '表格', exact: true }).click();
-  await expect(page.getByRole('status', { name: '正在加载表格' })).toBeVisible();
-  await page.screenshot({ path: path.join(artifacts, 'native-skeleton.png') });
+  await expect.poll(() => page.evaluate(() => window.__loadingFrames)).toContain('正在加载表格');
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   await expect(page.getByRole('table')).toBeVisible();
-  expect(await page.evaluate(() => window.__loadingFrames)).toContain('正在加载表格');
+  writeFileSync(
+    path.join(artifacts, 'native-loading-frames.json'),
+    JSON.stringify(await page.evaluate(() => window.__loadingFrames)),
+  );
+  await page.screenshot({ path: path.join(artifacts, 'native-table-loaded.png') });
   expect(await page.getByRole('table').innerText()).not.toContain('long agent output '.repeat(300));
   await page.getByRole('button', { name: '树形', exact: true }).click();
   await expect(page.getByRole('tree', { name: 'JSON 树' })).toBeVisible();
