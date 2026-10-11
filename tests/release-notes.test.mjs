@@ -32,6 +32,11 @@ test('uses reachable stable history, retains commit bodies, and filters version-
     assert.ok(notes.includes(`/releases/download/v2.0.9/${name}`));
   assert.match(notes, /blob\/v2.0.9\/README.md/);
   assert.match(notes, /without Apple notarization/);
+  assert.ok(
+    notes
+      .trimEnd()
+      .endsWith(`<!-- jsonl-viewer-release-commit:${git('rev-parse', 'v2.0.9^{commit}')} -->`),
+  );
 });
 
 test('first release and preview use correct history and immutable documentation', (t) => {

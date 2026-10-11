@@ -15,7 +15,13 @@ export function publishRelease(tag, directory, notes, { root = process.cwd(), gh
   if (git('rev-parse', `refs/tags/${tag}^{commit}`) !== sha)
     throw new Error('Release tag must point to HEAD.');
   const names = collectAssets(directory, root);
-  if (!readFileSync(notes, 'utf8').trim()) throw new Error('Release notes are empty.');
+  const marker = `<!-- jsonl-viewer-release-commit:${sha} -->`;
+  if (!readFileSync(notes, 'utf8').trimEnd().endsWith(marker))
+    throw new Error(
+      'Release notes must identify the tagged commit. Generate notes for this tag first.',
+    );
+  const matchesCommit = (release) =>
+    release.tag_name === tag && release.body?.trimEnd().endsWith(marker);
   const repo = gh([
     'repo',
     'view',
@@ -37,8 +43,7 @@ export function publishRelease(tag, directory, notes, { root = process.cwd(), gh
   if (release) {
     release = JSON.parse(release);
     if (!release.draft) throw new Error(`${tag} is already published; refusing to overwrite it.`);
-    if (release.target_commitish !== sha)
-      throw new Error('Existing draft belongs to a different commit.');
+    if (!matchesCommit(release)) throw new Error('Existing draft belongs to a different commit.');
   } else {
     gh([
       'release',
@@ -70,7 +75,7 @@ export function publishRelease(tag, directory, notes, { root = process.cwd(), gh
     gh(['release', 'view', tag, '--repo', repo, '--json', 'databaseId']),
   );
   release = JSON.parse(gh(['api', `repos/${repo}/releases/${databaseId}`]));
-  if (!release.draft || release.target_commitish !== sha)
+  if (!release.draft || !matchesCommit(release))
     throw new Error('Draft changed while uploading assets.');
   const actual = release.assets.map((asset) => asset.name).sort();
   if (JSON.stringify(actual) !== JSON.stringify([...names].sort()))

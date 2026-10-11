@@ -14,13 +14,21 @@ function setup(t, state = 'missing', broken = '') {
   mkdirSync(directory);
   for (const { name } of releaseAssets('2.0.0'))
     writeFileSync(join(directory, name), `installer ${name}`);
-  writeFileSync(notes, 'Release notes');
+  const body = `Release notes\n\n<!-- jsonl-viewer-release-commit:${f.git('rev-parse', 'HEAD')} -->\n`;
+  writeFileSync(notes, body);
   let release =
     state === 'missing'
       ? null
       : {
           draft: state !== 'published',
-          target_commitish: state === 'different' ? 'other-sha' : f.git('rev-parse', 'HEAD'),
+          target_commitish: 'main',
+          tag_name: 'v2.0.0',
+          body:
+            state === 'different'
+              ? body.replace(/commit:[a-f0-9]+/, 'commit:other')
+              : state === 'unmarked'
+                ? 'Existing draft'
+                : body,
           assets: [],
         };
   const calls = [];
@@ -38,7 +46,7 @@ function setup(t, state = 'missing', broken = '') {
     }
     if (command === 'release view') return JSON.stringify({ databaseId: 42 });
     if (command === 'release create') {
-      release = { draft: true, target_commitish: f.git('rev-parse', 'HEAD'), assets: [] };
+      release = { draft: true, target_commitish: 'main', tag_name: 'v2.0.0', body, assets: [] };
       return '';
     }
     if (command === 'release upload') {
@@ -71,7 +79,7 @@ for (const state of ['missing', 'draft'])
     );
   });
 
-for (const state of ['published', 'different'])
+for (const state of ['published', 'different', 'unmarked'])
   test(`refuses to overwrite ${state} release`, (t) => {
     const f = setup(t, state);
     assert.throws(() => publishRelease('v2.0.0', f.directory, f.notes, { root: f.root, gh: f.gh }));

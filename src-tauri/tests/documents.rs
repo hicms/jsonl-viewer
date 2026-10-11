@@ -1,5 +1,7 @@
+#[cfg(windows)]
+use jsonl_viewer_core::documents::open_for_save;
 use jsonl_viewer_core::{
-    documents::{open_for_save, Documents, Edit},
+    documents::{Documents, Edit},
     error::Error,
     reader::{self, Cursor},
 };

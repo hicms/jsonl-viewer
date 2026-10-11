@@ -39,6 +39,7 @@ jobs:
       - run: npm run build
 
   desktop:
+    name: ${{ matrix.label }}
     needs: prepare
     strategy:
       fail-fast: false
@@ -64,6 +65,7 @@ jobs:
         with:
           workspaces: src-tauri
           key: ${{ matrix.id }}
+          cache-on-failure: true
       - run: npm ci
       - run: npm run build
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features

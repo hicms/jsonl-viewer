@@ -139,6 +139,7 @@ export function generateNotes(tag, { root = process.cwd(), preview = false } = {
     `[Build from source and usage](${repo}/blob/${linkRef}/README.md) · [中文说明](${repo}/blob/${linkRef}/README.zh-CN.md)`,
     '',
   );
+  if (!preview) lines.push(`<!-- jsonl-viewer-release-commit:${sha} -->`, '');
   return lines.join('\n');
 }
 
