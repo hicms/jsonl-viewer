@@ -76,6 +76,8 @@ if (-not [WindowProbe]::GetWindowRect($handle, [ref]$rect)) { throw 'Cannot read
 $topPoint = (($rect.Top + 1) -shl 16) -bor (($rect.Left + 200) -band 0xffff)
 $topHit = [WindowProbe]::SendMessage($handle, 0x0084, [IntPtr]::Zero, [IntPtr]$topPoint).ToInt32()
 @{
+    handle = $handle.ToInt64()
+    title = $viewer.MainWindowTitle
     maximized = [WindowProbe]::IsZoomed($handle)
     minimized = [WindowProbe]::IsIconic($handle)
     left = $rect.Left

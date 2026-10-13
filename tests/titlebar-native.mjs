@@ -26,6 +26,21 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
       (name) => window.__TAURI_INTERNALS__.invoke(`plugin:window|${name}`, { label: 'main' }),
       command,
     );
+  async function expectMinimized() {
+    try {
+      await expect.poll(() => probe()).toMatchObject({ minimized: true });
+    } catch (error) {
+      console.log('Minimize failure diagnostics', {
+        native: probe(),
+        tauriMinimized: await nativeState('is_minimized'),
+        pointer: await page.evaluate(() => window.__captionPointer),
+        controls: await page.locator('.window-controls').evaluate((element) => element.outerHTML),
+      });
+      await nativeState('minimize');
+      console.log('Direct native minimize result', probe());
+      throw error;
+    }
+  }
   expect(await nativeState('is_decorated')).toBe(false);
   await page.evaluate(() =>
     window.addEventListener(
@@ -106,7 +121,7 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
             })
             .toEqual([width, 0, 40]);
           await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
-          await expect.poll(() => probe()).toMatchObject({ minimized: true });
+          await expectMinimized();
           probe('restore');
           await expect.poll(() => probe()).toMatchObject({ minimized: false });
           await closeNavigation(page);
@@ -170,7 +185,7 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
       })
       .toEqual([1280, 0, 40]);
     await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
-    await expect.poll(() => probe()).toMatchObject({ minimized: true });
+    await expectMinimized();
     probe('restore');
     await expect.poll(() => probe()).toMatchObject({ minimized: false });
     await page.evaluate(() => document.querySelector('#caption-first').remove());
@@ -195,7 +210,7 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
     await expect(page.getByText('放弃未保存的修改？', { exact: true })).toBeVisible();
     await expect(page.locator('dialog:modal .window-controls')).toHaveCount(1);
     await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
-    await expect.poll(() => probe()).toMatchObject({ minimized: true });
+    await expectMinimized();
     probe('restore');
     await expect.poll(() => probe()).toMatchObject({ minimized: false });
     await page.getByRole('button', { name: '继续编辑', exact: true }).click();
