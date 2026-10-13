@@ -677,7 +677,7 @@ try {
     'browser-style file tabs: upper rounding, square lower corners, hover/selection, truncated filenames and separate close targets in both themes at 720/1280 widths and 80/100/150% zoom',
   );
   expect(errors).toEqual([]);
-  await verifyTitlebar({
+  const nativeWindowChecks = await verifyTitlebar({
     page,
     directory,
     artifacts,
@@ -688,10 +688,16 @@ try {
     },
   });
   checks.push(
-    '40px titlebar, zoom/themes/narrow modal controls, native drag/resize/maximize/minimize, fullscreen reload, dirty close cancellation and complete 1201-record Rust save',
+    '40px titlebar, zoom/themes/narrow modal controls, native resize/maximize/minimize, fullscreen reload, dirty close cancellation and complete 1201-record Rust save',
   );
   expect(errors).toEqual([]);
-  console.log(JSON.stringify({ passed: checks, runtimeErrors: errors, artifacts }, null, 2));
+  console.log(
+    JSON.stringify(
+      { passed: checks, nativeWindowChecks, runtimeErrors: errors, artifacts },
+      null,
+      2,
+    ),
+  );
 } catch (error) {
   if (browser)
     await browser

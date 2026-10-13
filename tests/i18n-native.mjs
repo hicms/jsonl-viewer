@@ -39,6 +39,7 @@ export async function verifyLanguages({ page, directory, artifacts, openFile }) 
   await chooseLanguage(page, 'English');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('button', { name: 'Table', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Table', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Inspect line 1', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Expand row', exact: true }).first()).toBeVisible();
   await expect(page.locator('.status-bar')).toContainText('1,000 records loaded');

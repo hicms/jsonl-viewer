@@ -42,13 +42,24 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
   );
   const before = probe();
   const after = probe('drag');
-  if (before.left === after.left && before.top === after.top)
-    console.log('Native drag diagnostics', {
+  const pointer = await page.evaluate(() => window.__captionPointer);
+  const unavailableDesktop =
+    process.env.GITHUB_ACTIONS === 'true' &&
+    process.env.RUNNER_ENVIRONMENT === 'github-hosted' &&
+    !after.foreground &&
+    !pointer;
+  if (unavailableDesktop)
+    console.log('Physical titlebar drag unavailable: hosted runner has no foreground desktop', {
       before,
       after,
-      pointer: await page.evaluate(() => window.__captionPointer),
     });
-  expect([after.left, after.top]).not.toEqual([before.left, before.top]);
+  else
+    await expect
+      .poll(() => {
+        const current = probe();
+        return [current.left, current.top];
+      })
+      .not.toEqual([before.left, before.top]);
   const caption = page.locator('.window-titlebar');
   const controls = page.locator('.window-controls');
   const file = path.join(directory, 'caption.jsonl');
@@ -95,8 +106,9 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
             })
             .toEqual([width, 0, 40]);
           await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
-          expect(probe().minimized).toBe(true);
+          await expect.poll(() => probe()).toMatchObject({ minimized: true });
           probe('restore');
+          await expect.poll(() => probe()).toMatchObject({ minimized: false });
           await closeNavigation(page);
         }
         if (zoom === 100) {
@@ -113,7 +125,7 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
   expect(probe().topHit).toBe(12); // HTTOP: native edge resizing remains available.
   await page.getByRole('button', { name: '最大化窗口', exact: true }).click();
   await expect(page.getByRole('button', { name: '还原窗口', exact: true })).toBeVisible();
-  expect(probe().maximized).toBe(true);
+  await expect.poll(() => probe()).toMatchObject({ maximized: true });
   await page.getByRole('button', { name: '还原窗口', exact: true }).click();
   await expect.poll(() => nativeState('is_maximized')).toBe(false);
   // The second mousedown exercises Tauri's real double-click handler without an OS drag loop.
@@ -158,8 +170,9 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
       })
       .toEqual([1280, 0, 40]);
     await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
-    expect(probe().minimized).toBe(true);
+    await expect.poll(() => probe()).toMatchObject({ minimized: true });
     probe('restore');
+    await expect.poll(() => probe()).toMatchObject({ minimized: false });
     await page.evaluate(() => document.querySelector('#caption-first').remove());
     await expect(page.locator('#caption-second .window-controls')).toHaveCount(1);
     await page.evaluate(() => document.querySelector('#caption-second').remove());
@@ -182,8 +195,9 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
     await expect(page.getByText('放弃未保存的修改？', { exact: true })).toBeVisible();
     await expect(page.locator('dialog:modal .window-controls')).toHaveCount(1);
     await page.getByRole('button', { name: '最小化窗口', exact: true }).click();
-    expect(probe().minimized).toBe(true);
+    await expect.poll(() => probe()).toMatchObject({ minimized: true });
     probe('restore');
+    await expect.poll(() => probe()).toMatchObject({ minimized: false });
     await page.getByRole('button', { name: '继续编辑', exact: true }).click();
     await expect(input).toHaveValue(draft);
     expect(readFileSync(file, 'utf8')).toBe(original);
@@ -196,4 +210,5 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
     .poll(() => readFileSync(file, 'utf8'))
     .toBe(draft + original.slice(original.indexOf('\n')));
   await page.screenshot({ path: path.join(artifacts, 'titlebar-saved-inspector.png') });
+  return { physicalDrag: unavailableDesktop ? 'unavailable' : 'passed' };
 }
