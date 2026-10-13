@@ -10,6 +10,9 @@ A local desktop tool built with Rust, Tauri 2, React 19, and Astryx for viewing 
 - Table, tree, raw text, and session views, with search across loaded content, row details, copying, column visibility, and column resizing. Table row detail buttons stay pinned to the right edge while columns scroll horizontally. Raw view copy buttons sit in the top-right header above the text.
 - Row details overlay the right side of the window without shrinking the main content. The panel uses 50% of the window width, up to 960 pixels, and fills the content viewport height. The title, edit/save actions, and copy action stay fixed while the content scrolls. Large drafts use a bounded, scrolling editor.
 - Switching views first displays an Astryx skeleton screen, then builds the data view. Table and tree views show short previews of long text; full JSON is available in row details or expanded rows.
+- Raw text, row details, and expanded table rows use a virtual scrolling text viewer for content over 100,000 characters or 5,000 lines. Only visible text is mounted; long lines wrap to the available width, and Copy retains the complete text. Smaller values retain syntax highlighting and automatic wrapping.
+- The table has one vertical scrollbar for records and expanded details together. Details expand in the document flow with no internal scrollbar; large details render only the part visible through the table viewport. They keep the visible viewport width while columns scroll horizontally. Column resize handles stay in the header, and pagination appears only when more than 100 records are shown.
+- Opening the first file immediately displays an Astryx skeleton for the document controls and table. Background opens show a compact skeleton while the current document remains usable. Repeated requests for a pending file are combined; a completed background open preserves the currently selected file and its drafts.
 - Automatically detects STS, Codex, Claude Code, Pi, and Hermes sessions and displays messages, thinking, tool calls and results, models, reasoning effort, and token usage.
 - The desktop sidebar keeps file actions at the top and language, appearance, and zoom at the bottom. In narrow windows, these settings are available by scrolling the navigation drawer. Document save/edit controls sit beside the title; view and column controls sit above full-width search. Column choices persist and remain available while filtering loaded records.
 - The desktop sidebar's collapse/expand button sits at the right edge of its bottom bar.
@@ -47,6 +50,7 @@ cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
 npm run tauri -- build --debug --no-bundle
 npm run test:native                    # Windows WebView2 with real file reads and writes
+node tests/large-json-native.mjs        # Million-line JSON scrolling and complete clipboard copy
 npm run desktop:build                  # Release EXE and NSIS installer
 ```
 

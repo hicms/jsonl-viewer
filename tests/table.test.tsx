@@ -93,7 +93,10 @@ it('renders long Agent values without measuring truncation for every cell', () =
       />
     </Theme>,
   );
-  expect(screen.getByRole('complementary', { name: '行详情' }).textContent).toContain(text);
+  const details = screen.getByRole('complementary', { name: '行详情' });
+  expect(details.textContent).toContain('tool response');
+  expect(details.textContent!.length).toBeLessThan(30_000);
+  expect(details.querySelectorAll('[data-code-row]').length).toBeLessThan(60);
   expect(line.value).toEqual({
     message: text,
     payload: { content: [text] },

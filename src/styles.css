@@ -171,6 +171,19 @@ body {
   flex-shrink: 0;
   min-width: 0;
 }
+.opening-files {
+  flex-shrink: 0;
+  min-width: 0;
+}
+.file-loading-skeleton {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.file-loading-skeleton > * {
+  flex-shrink: 0;
+}
 .document-identity {
   flex: 1;
   min-width: 0;
@@ -215,7 +228,38 @@ body {
   overflow: auto;
 }
 .table-view {
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.view-area:has(> .table-view) {
+  overflow: hidden;
+}
+.table-view > :first-child {
+  flex: 1;
+  min-height: 0;
+}
+.table-view > :not(:first-child) {
+  flex-shrink: 0;
+}
+.table-view .astryx-table-scroll-wrapper {
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.table-view [data-expansion-panel] > td {
+  padding: 0;
+}
+.table-view thead {
+  --table-resize-height: 100%;
+}
+.table-expanded {
+  position: sticky;
+  inset-inline-start: 0;
+  width: var(--table-viewport-width);
+  padding: var(--spacing-4);
+  box-sizing: border-box;
 }
 .skeleton-table-row {
   display: grid;
@@ -245,6 +289,68 @@ body {
 }
 .inspector-content > * {
   flex-shrink: 0;
+}
+.virtual-code {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.virtual-code-scroll {
+  position: relative;
+  height: calc(60dvh / var(--app-zoom, 1));
+  max-height: 600px;
+  min-height: 120px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+}
+.virtual-code-track {
+  position: relative;
+  min-width: 100%;
+}
+.virtual-code-flow {
+  position: relative;
+  overflow-anchor: none;
+}
+.virtual-code-window {
+  position: absolute;
+  padding-inline: var(--spacing-4);
+  width: 100%;
+  box-sizing: border-box;
+}
+.virtual-code-metrics {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  visibility: hidden;
+  white-space: pre;
+}
+.virtual-code-row {
+  display: block;
+  height: 20px;
+  line-height: 20px;
+  white-space: pre;
+  tab-size: 2;
+}
+.inspector-content:has(> .virtual-code) {
+  overflow: hidden;
+}
+.raw-document:has(.virtual-code) {
+  height: 100%;
+  box-sizing: border-box;
+}
+.raw-document:has(.virtual-code) > :first-child,
+.raw-document .virtual-code,
+.inspector-content > .virtual-code {
+  flex: 1;
+  min-height: 0;
+}
+.raw-document .virtual-code-scroll,
+.inspector-content .virtual-code-scroll {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+  max-height: none;
 }
 .inspector-content textarea {
   field-sizing: content;

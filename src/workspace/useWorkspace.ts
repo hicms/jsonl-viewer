@@ -1,16 +1,30 @@
-import { useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useToast } from '@astryxdesign/core/Toast';
 import { api, errorMessage } from '../lib/bridge';
 import { usePreference } from '../lib/preferences';
 import type { FileUi, Json } from '../lib/types';
-import { emptyWorkspace, reducer } from './reducer';
+import { emptyWorkspace, reducer, type Action } from './reducer';
 import { useI18n } from '../i18n';
 
 export function useWorkspace() {
   const { t } = useI18n();
   const translation = useRef(t);
   translation.current = t;
-  const [state, dispatch] = useReducer(reducer, emptyWorkspace);
+  const [state, reduce] = useReducer(reducer, emptyWorkspace);
+  const focusVersion = useRef(0);
+  const dispatch = useCallback((action: Action) => {
+    if (action.type === 'activate' || action.type === 'close') focusVersion.current++;
+    reduce(action);
+  }, []);
+  const pendingOpens = useRef(new Set<string>());
+  const [opening, setOpening] = useState<string[]>([]);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const latest = useRef(state);
   latest.current = state;
   const running = useRef(new Set<string>());
@@ -22,15 +36,23 @@ export function useWorkspace() {
     toast({ body: errorMessage(error, translation.current), type: 'error' });
 
   async function open(path?: string) {
+    const key = path ?? '';
+    if (pendingOpens.current.has(key)) return;
+    const intent = ++focusVersion.current;
+    pendingOpens.current.add(key);
+    setOpening([...pendingOpens.current]);
     try {
       const snapshot = await api.open(path);
-      if (!snapshot) return;
-      dispatch({ type: 'open', snapshot, order });
+      if (!snapshot || !mounted.current) return;
+      dispatch({ type: 'open', snapshot, order, activate: intent === focusVersion.current });
       setRecent((paths) =>
         [snapshot.path, ...paths.filter((p) => p !== snapshot.path)].slice(0, 50),
       );
     } catch (error) {
-      report(error);
+      if (mounted.current) report(error);
+    } finally {
+      pendingOpens.current.delete(key);
+      if (mounted.current) setOpening([...pendingOpens.current]);
     }
   }
   async function request(id: string, kind: 'page' | 'refresh') {
@@ -132,6 +154,7 @@ export function useWorkspace() {
   ) => dispatch({ type: 'edit', id, index, raw, value, parseError });
   return {
     state,
+    opening,
     dispatch,
     latest,
     recent,

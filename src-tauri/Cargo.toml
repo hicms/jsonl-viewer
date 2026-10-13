@@ -26,6 +26,7 @@ tauri-build = { version = "2", features = [], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
+memchr = "2"
 tempfile = "3"
 thiserror = "2"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
@@ -41,3 +42,12 @@ codegen-units = 1
 lto = true
 strip = true
 panic = "abort"
+
+[profile.dev.package.serde_json]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.jsonl-viewer]
+opt-level = 1

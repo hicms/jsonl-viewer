@@ -1,6 +1,5 @@
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { Stack } from '@astryxdesign/core/Stack';
-import { Text } from '@astryxdesign/core/Text';
 import type { View } from '../lib/types';
 import { useI18n } from '../i18n';
 
@@ -9,7 +8,6 @@ export function ViewSkeleton({ view }: { view: View }) {
   const loading = t('loadingView', { view: t(view) });
   return (
     <Stack gap={4} padding={4} role="status" aria-label={loading} aria-busy="true">
-      <Text color="secondary">{loading}…</Text>
       {view === 'table' ? (
         <Stack gap={3}>
           {Array.from({ length: 9 }, (_, row) => (

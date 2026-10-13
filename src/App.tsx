@@ -36,6 +36,7 @@ import { RawView } from './views/RawView';
 import { Inspector } from './views/Inspector';
 import { DocumentActions } from './components/DocumentActions';
 import { DeferredView } from './components/DeferredView';
+import { FileLoadingSkeleton } from './components/FileLoadingSkeleton';
 import { useWorkspace } from './workspace/useWorkspace';
 import { visibleLines } from './workspace/reducer';
 import { usePreference, bytes, stringify } from './lib/preferences';
@@ -286,6 +287,9 @@ function Application({
         }
       >
         <div className="workspace">
+          {workspace.opening.length && active ? (
+            <FileLoadingSkeleton paths={workspace.opening} compact />
+          ) : null}
           {workspace.state.sessions.length ? (
             <FileTabs workspace={workspace} onClose={requestClose} />
           ) : null}
@@ -396,6 +400,8 @@ function Application({
                 )}
               </Stack>
             </>
+          ) : workspace.opening.length ? (
+            <FileLoadingSkeleton paths={workspace.opening} />
           ) : (
             <div className="empty-workspace">
               <EmptyState

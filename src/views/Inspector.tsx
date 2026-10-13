@@ -1,17 +1,17 @@
 import { useI18n } from '../i18n';
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@astryxdesign/core/Card';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Button } from '@astryxdesign/core/Button';
-import { CodeBlock } from '@astryxdesign/core/CodeBlock';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { X, Copy } from 'lucide-react';
 import type { Json, Line } from '../lib/types';
-import { stringify } from '../lib/preferences';
+import { lineText } from '../lib/lineText';
+import { JsonCode } from '../components/JsonCode';
 
 export function Inspector({
   line,
@@ -30,7 +30,12 @@ export function Inspector({
 }) {
   const { t } = useI18n();
   const [tab, setTab] = useState('json');
-  const [draft, setDraft] = useState(line.parseError ? line.raw : stringify(line.value, true));
+  const [draft, setDraft] = useState<string>();
+  const text = useMemo(
+    () => (editMode && draft !== undefined ? draft : lineText(line, !editMode && tab === 'raw')),
+    [line, tab, editMode, draft],
+  );
+  const editorText = draft ?? text;
   const [error, setError] = useState<string>();
   function change(text: string) {
     setDraft(text);
@@ -75,25 +80,19 @@ export function Inspector({
         {editMode ? (
           <TextArea
             className={
-              draft.length > 100_000 || draft.split('\n').length > 1000
+              editorText.length > 100_000 || editorText.split('\n').length > 1000
                 ? 'inspector-large-editor'
                 : undefined
             }
             label={t('editJson')}
-            value={draft}
+            value={editorText}
             onChange={change}
             rows={18}
             hasSpellCheck={false}
             status={error ? { type: 'error', message: error } : undefined}
           />
         ) : (
-          <CodeBlock
-            code={tab === 'raw' || line.parseError ? line.raw : stringify(line.value, true)}
-            language="json"
-            isWrapped
-            width="100%"
-            hasCopyButton={false}
-          />
+          <JsonCode code={text} hasCopyButton={false} />
         )}
       </Stack>
       <Stack padding={3} gap={2} className="inspector-footer">
@@ -103,9 +102,7 @@ export function Inspector({
           icon={<Copy size={16} />}
           variant="ghost"
           onClick={() =>
-            void navigator.clipboard
-              .writeText(tab === 'raw' || line.parseError ? line.raw : stringify(line.value, true))
-              .catch(report)
+            void navigator.clipboard.writeText(lineText(line, tab === 'raw')).catch(report)
           }
         />
       </Stack>

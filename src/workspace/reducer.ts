@@ -2,7 +2,7 @@ import type { Workspace, Snapshot, FileUi, Session, Patch, Json } from '../lib/t
 
 export const emptyWorkspace: Workspace = { sessions: [], activeId: null, closedIds: [] };
 export type Action =
-  | { type: 'open'; snapshot: Snapshot; order?: 'oldest' | 'newest' }
+  | { type: 'open'; snapshot: Snapshot; order?: 'oldest' | 'newest'; activate?: boolean }
   | { type: 'activate'; id: string }
   | { type: 'close'; ids: string[] }
   | { type: 'ui'; id: string; patch: Partial<FileUi> }
@@ -35,7 +35,7 @@ export function reducer(state: Workspace, action: Action): Workspace {
   if (action.type === 'open') {
     if (state.closedIds.includes(action.snapshot.id)) return state;
     if (state.sessions.some((s) => s.snapshot.id === action.snapshot.id))
-      return { ...state, activeId: action.snapshot.id };
+      return action.activate === false ? state : { ...state, activeId: action.snapshot.id };
     const session: Session = {
       snapshot: action.snapshot,
       edits: {},
@@ -55,7 +55,11 @@ export function reducer(state: Workspace, action: Action): Workspace {
         changed: false,
       },
     };
-    return { ...state, sessions: [...state.sessions, session], activeId: action.snapshot.id };
+    return {
+      ...state,
+      sessions: [...state.sessions, session],
+      activeId: action.activate === false ? state.activeId : action.snapshot.id,
+    };
   }
   if (action.type === 'activate') return { ...state, activeId: action.id };
   if (action.type === 'close') {

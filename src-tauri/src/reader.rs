@@ -115,7 +115,7 @@ pub fn fingerprint_reader(mut reader: impl Read) -> Result<Fingerprint> {
             break;
         }
         hash.update(&buffer[..count]);
-        total_lines += buffer[..count].iter().filter(|&&b| b == b'\n').count();
+        total_lines += memchr::memchr_iter(b'\n', &buffer[..count]).count();
         size += count as u64;
         last = buffer.get(count - 1).copied();
     }

@@ -1919,6 +1919,7 @@ name = "jsonl-viewer"
 version = "2.0.4"
 dependencies = [
  "chrono",
+ "memchr",
  "rfd",
  "serde",
  "serde_json",

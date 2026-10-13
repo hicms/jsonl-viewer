@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { act, cleanup } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { render } from './render';
 import { App } from '../src/App';
 import { api, bindNative } from '../src/lib/bridge';
@@ -78,4 +78,21 @@ it('does not open files after unmount while the startup command is pending', asy
   await act(async () => files.resolve(['late.jsonl']));
   expect(api.open).not.toHaveBeenCalled();
   expect(dispose).toHaveBeenCalledOnce();
+});
+
+it('shows the file skeleton before the open response and restores welcome on cancellation', async () => {
+  const pending = deferred<null>();
+  vi.mocked(bindNative).mockResolvedValue(() => {});
+  vi.mocked(api.open).mockReturnValue(pending.promise);
+  render(<App />);
+  await act(async () => {});
+  expect(screen.getByRole('status', { name: '正在读取并解析文件…' }).textContent).toContain(
+    'launch.jsonl',
+  );
+  expect(document.querySelector('.file-loading-skeleton .astryx-skeleton')).toBeTruthy();
+  expect(document.querySelector('.empty-workspace')).toBeNull();
+  expect(screen.queryByText('正在读取并解析文件…')).toBeNull();
+  await act(async () => pending.resolve(null));
+  expect(screen.queryByRole('status', { name: '正在读取并解析文件…' })).toBeNull();
+  expect(document.querySelector('.empty-workspace')).toBeTruthy();
 });

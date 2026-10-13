@@ -11,15 +11,18 @@ import {
 } from '@astryxdesign/core/Table';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Badge } from '@astryxdesign/core/Badge';
-import { CodeBlock } from '@astryxdesign/core/CodeBlock';
 import { Pagination } from '@astryxdesign/core/Pagination';
 import { Text } from '@astryxdesign/core/Text';
 import { Eye } from 'lucide-react';
-import { usePreference, stringify } from '../lib/preferences';
+import { usePreference } from '../lib/preferences';
+import { lineText } from '../lib/lineText';
+import { JsonCode } from '../components/JsonCode';
 import type { Line } from '../lib/types';
 import { jsonPreview } from '../lib/jsonPreview';
 import type { TableField } from '../lib/tableColumns';
 import { TableRowMenu } from '../components/TableRowMenu';
+import { useTableViewport } from './useTableViewport';
+import { MAX_CODE_SCROLL_HEIGHT } from '../lib/codeWindow';
 
 type Row = Line & Record<string, unknown>;
 export const TableView = memo(function TableView({
@@ -37,6 +40,9 @@ export const TableView = memo(function TableView({
   const [page, setPage] = useState(1);
   const [widths, setWidths] = usePreference<Record<string, number>>('columnWidths', {});
   const [expanded, setExpanded] = useState(new Set<string>());
+  const actualPage = Math.min(page, Math.max(1, Math.ceil(lines.length / 100)));
+  const pageLines = lines.slice((actualPage - 1) * 100, actualPage * 100);
+  const expandedCount = pageLines.filter((line) => expanded.has(String(line.index))).length;
   const toggleRow = useCallback((key: string) => {
     setExpanded((current) => {
       const next = new Set(current);
@@ -105,16 +111,21 @@ export const TableView = memo(function TableView({
     getRowKey: (row) => String(row.index),
     onToggle: toggleRow,
     renderExpanded: (row) => (
-      <CodeBlock
-        code={row.parseError ? row.raw : stringify(row.value, true)}
-        language="json"
-        isWrapped
-      />
+      <div className="table-expanded">
+        <JsonCode
+          code={lineText(row)}
+          scrollParent=".astryx-table-scroll-wrapper"
+          scrollHeightLimit={MAX_CODE_SCROLL_HEIGHT / Math.max(1, expandedCount)}
+        />
+      </div>
     ),
   });
   const rowExpansion = useMemo<TablePlugin<Row>>(
     () => ({
       ...expansion,
+      transformScrollWrapper(props) {
+        return { ...props, htmlProps: { ...props.htmlProps, tabIndex: 0 } };
+      },
       // Share the row menu instead of mounting a menu for every cell.
       transformBodyCell(props, ...args) {
         const transformed = expansion.transformBodyCell?.(props, ...args) ?? props;
@@ -130,12 +141,13 @@ export const TableView = memo(function TableView({
     }),
     [expansion],
   );
-  const actualPage = Math.min(page, Math.max(1, Math.ceil(lines.length / 100)));
+  const table = useTableViewport(lines, actualPage);
   return (
     <div className="table-view">
       <TableRowMenu expanded={expanded} onToggle={toggleRow}>
         <Table<Row>
-          data={lines.slice((actualPage - 1) * 100, actualPage * 100) as Row[]}
+          ref={table}
+          data={pageLines as Row[]}
           columns={columns}
           idKey="index"
           density="compact"
@@ -145,13 +157,15 @@ export const TableView = memo(function TableView({
           plugins={{ resize, expansion: rowExpansion, sticky }}
         />
       </TableRowMenu>
-      <Pagination
-        page={actualPage}
-        onChange={setPage}
-        totalItems={lines.length}
-        pageSize={100}
-        label={t('tablePagination')}
-      />
+      {lines.length > 100 ? (
+        <Pagination
+          page={actualPage}
+          onChange={setPage}
+          totalItems={lines.length}
+          pageSize={100}
+          label={t('tablePagination')}
+        />
+      ) : null}
     </div>
   );
 });
