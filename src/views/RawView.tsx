@@ -19,7 +19,14 @@ export function RawView({ lines, onSelect }: { lines: Line[]; onSelect: (index: 
             variant="ghost"
             onClick={() => onSelect(line.index)}
           />
-          <CodeBlock code={line.raw} language="json" hasLanguageLabel={false} isWrapped size="sm" />
+          <CodeBlock
+            code={line.raw}
+            language="json"
+            title=""
+            hasLanguageLabel={false}
+            isWrapped
+            size="sm"
+          />
         </Stack>
       ))}
       <Pagination

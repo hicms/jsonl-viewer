@@ -5,6 +5,7 @@ import {
   pixel,
   useTableColumnResize,
   useTableRowExpansion,
+  useTableStickyColumns,
   type TableColumn,
   type TablePlugin,
 } from '@astryxdesign/core/Table';
@@ -98,6 +99,7 @@ export const TableView = memo(function TableView({
     onColumnResizeEnd: (updates) => setWidths((current) => ({ ...current, ...updates })),
     minWidth: 70,
   });
+  const sticky = useTableStickyColumns<Row>({ endKeys: ['internal:inspect'] });
   const expansion = useTableRowExpansion<Row>({
     expandedKeys: expanded,
     getRowKey: (row) => String(row.index),
@@ -140,7 +142,7 @@ export const TableView = memo(function TableView({
           hasHover
           dividers="rows"
           textOverflow="truncate"
-          plugins={{ resize, expansion: rowExpansion }}
+          plugins={{ resize, expansion: rowExpansion, sticky }}
         />
       </TableRowMenu>
       <Pagination

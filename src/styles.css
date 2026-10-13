@@ -12,6 +12,62 @@ body {
 .app-root {
   height: calc(100dvh / var(--app-zoom, 1));
 }
+.app-root[data-custom-titlebar='true'] {
+  --window-titlebar-height: 40px;
+}
+.app-root[data-fullscreen='true'] {
+  --window-titlebar-height: 0px;
+}
+.app-root .astryx-layout-header:has(.window-titlebar) > div {
+  max-width: none;
+}
+.app-root .window-titlebar {
+  zoom: calc(1 / var(--app-zoom, 1));
+  width: 100vw;
+  max-width: none;
+  flex-shrink: 0;
+  height: 40px;
+  padding-block: 0;
+  padding-inline-end: 0;
+  user-select: none;
+}
+.app-root[data-fullscreen='true'] .window-titlebar {
+  display: none;
+}
+.window-controls {
+  display: flex;
+  align-self: stretch;
+}
+.window-controls-placeholder {
+  width: 138px;
+  height: 40px;
+}
+.window-controls > button {
+  width: 46px;
+  height: 40px;
+}
+.window-controls[hidden] {
+  display: none;
+}
+.window-controls-modal {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  inset-block-end: auto;
+  inset-inline-start: auto;
+  zoom: calc(1 / var(--app-zoom, 1));
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+.app-root[data-custom-titlebar='true'] dialog::backdrop {
+  inset-block-start: var(--window-titlebar-height);
+}
+.window-titlebar[data-mode='mobile-bar'] > :last-child > :last-child {
+  order: -1;
+}
 .workspace-preferences-container {
   container-type: inline-size;
 }
@@ -42,8 +98,9 @@ body {
   height: calc(100dvh / var(--app-zoom, 1));
   max-width: calc(100vw / var(--app-zoom, 1));
 }
-.app-root .astryx-mobile-nav > div {
-  height: 100%;
+.app-root .astryx-mobile-nav > div:not(.window-controls) {
+  margin-block-start: calc(var(--window-titlebar-height, 0px) / var(--app-zoom, 1));
+  height: calc((100dvh - var(--window-titlebar-height, 0px)) / var(--app-zoom, 1));
   max-height: 100%;
 }
 .workspace {
@@ -56,6 +113,9 @@ body {
 .file-tabs {
   min-width: 0;
   flex-shrink: 0;
+  padding-block-start: var(--spacing-2);
+  padding-inline: var(--spacing-2);
+  gap: var(--spacing-2);
 }
 .tabs-grow {
   flex: 1;
@@ -65,14 +125,28 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  flex: 0 1 220px;
+  min-width: 140px;
+  max-width: 240px;
+}
+.file-tab > .astryx-tab {
+  width: 100%;
+  min-width: 0;
+}
+.file-tab > .astryx-tab > span:nth-child(3) {
+  min-width: 0;
+  overflow: hidden;
+}
+.file-tab > .astryx-tab > span:nth-child(3) > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .file-tab-action-space {
   width: var(--size-element-sm);
 }
 .file-tab > .file-close {
   position: absolute;
-  inset-inline-end: var(--spacing-3);
+  inset-inline-end: var(--spacing-2);
 }
 .file-close {
   opacity: 0;
@@ -150,11 +224,11 @@ body {
 }
 .inspector {
   position: fixed;
-  inset-block-start: 0;
+  inset-block-start: calc(var(--window-titlebar-height, 0px) / var(--app-zoom, 1));
   inset-inline-end: 0;
   z-index: 10;
   width: calc(min(50vw, 960px) / var(--app-zoom, 1));
-  height: calc(100dvh / var(--app-zoom, 1));
+  height: calc((100dvh - var(--window-titlebar-height, 0px)) / var(--app-zoom, 1));
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -113,7 +113,27 @@ export function TraceView({
     );
     return ui.order === 'newest' ? [...filtered].reverse() : filtered;
   }, [trace.items, ui.filter, ui.order, t]);
-  const messages = items.filter((item) => item.kind === 'user' || item.kind === 'assistant');
+  const messages = useMemo(
+    () => items.filter((item) => item.kind === 'user' || item.kind === 'assistant'),
+    [items],
+  );
+  const currentMessage = Math.min(current, Math.max(0, messages.length - 1));
+  function updateCurrent() {
+    const element = scroll.current;
+    if (!element) return;
+    const nodes = [...element.querySelectorAll<HTMLElement>('.trace-entry[data-message="true"]')];
+    const top = element.getBoundingClientRect().top;
+    const nearest = nodes.findIndex((node) => node.getBoundingClientRect().bottom > top + 20);
+    setCurrent(Math.max(0, nearest));
+  }
+  useEffect(() => {
+    const element = scroll.current;
+    if (jumping.current && element) {
+      element.scrollTo({ top: element.scrollTop, behavior: 'instant' });
+      jumping.current = false;
+    }
+    updateCurrent();
+  }, [messages]);
   useEffect(() => {
     if (!ui.live) return;
     const timer = setTimeout(() => onUi({ live: false }), 45000);
@@ -123,18 +143,33 @@ export function TraceView({
     if (ui.follow && scroll.current) {
       jumping.current = true;
       scroll.current.scrollTop = ui.order === 'newest' ? 0 : scroll.current.scrollHeight;
-      requestAnimationFrame(() => {
+      const frame = requestAnimationFrame(() => {
+        updateCurrent();
         jumping.current = false;
       });
+      return () => cancelAnimationFrame(frame);
     }
   }, [items.length, ui.follow, ui.order]);
   function navigate(delta: number) {
-    const next = Math.max(0, Math.min(messages.length - 1, current + delta));
+    const next = Math.max(0, Math.min(messages.length - 1, currentMessage + delta));
+    const element = scroll.current;
+    const target = element?.querySelector<HTMLElement>(
+      `.trace-entry[data-message="true"][data-line="${messages[next]?.sourceLine}"]`,
+    );
+    if (!element || !target) return;
+    const top = Math.max(
+      0,
+      Math.min(
+        element.scrollHeight - element.clientHeight,
+        element.scrollTop +
+          target.getBoundingClientRect().top -
+          element.getBoundingClientRect().top,
+      ),
+    );
+    jumping.current = Math.abs(top - element.scrollTop) > 1;
     setCurrent(next);
     onUi({ follow: false });
-    scroll.current
-      ?.querySelector(`[data-line="${messages[next]?.sourceLine}"]`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -160,10 +195,10 @@ export function TraceView({
               ? element.scrollTop < 60
               : element.scrollHeight - element.scrollTop - element.clientHeight < 60;
           if (near !== ui.follow) onUi({ follow: near, pending: near ? 0 : ui.pending });
-          const nodes = [...element.querySelectorAll<HTMLElement>('[data-message="true"]')];
-          const top = element.getBoundingClientRect().top;
-          const nearest = nodes.findIndex((node) => node.getBoundingClientRect().bottom > top + 20);
-          if (nearest >= 0) setCurrent(nearest);
+          updateCurrent();
+        }}
+        onScrollEnd={() => {
+          jumping.current = false;
         }}
       >
         <Stack padding={6} gap={5} className={ui.wide ? 'trace-wide' : 'trace-compact'}>
@@ -269,16 +304,16 @@ export function TraceView({
           <IconButton
             label={t('previousMessage')}
             icon={<ArrowUp size={16} />}
-            isDisabled={current <= 0}
+            isDisabled={!messages.length || currentMessage <= 0}
             onClick={() => navigate(-1)}
           />
           <Text>
-            {messages.length ? current + 1 : 0} / {messages.length}
+            {messages.length ? currentMessage + 1 : 0} / {messages.length}
           </Text>
           <IconButton
             label={t('nextMessage')}
             icon={<ArrowDown size={16} />}
-            isDisabled={current >= messages.length - 1}
+            isDisabled={currentMessage >= messages.length - 1}
             onClick={() => navigate(1)}
           />
         </Stack>

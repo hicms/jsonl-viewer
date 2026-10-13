@@ -6,7 +6,7 @@
   "repository": "https://github.com/hicms/jsonl-viewer",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run theme:build && tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "tauri": "tauri",
     "desktop": "tauri dev",
@@ -15,6 +15,8 @@
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:native": "node tests/native.mjs",
     "test:release": "node --test tests/release-*.test.mjs",
+    "theme:build": "npm run astryx -- theme build src/themes/fileTabsTheme.ts --out src/themes/file-tabs.css",
+    "theme:check": "npm run astryx -- theme build src/themes/fileTabsTheme.ts --out src/themes/file-tabs.css --check",
     "release": "pwsh -NoProfile -File scripts/release.ps1",
     "format": "prettier --write src tests vite.config.ts",
     "format:check": "prettier --check src tests vite.config.ts",

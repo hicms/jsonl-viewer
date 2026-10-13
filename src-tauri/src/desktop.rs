@@ -199,6 +199,10 @@ pub fn run() {
         ])
         .setup(|app| {
             crate::menus::install(app.handle())?;
+            #[cfg(target_os = "windows")]
+            if let Some(window) = app.get_webview_window("main") {
+                window.set_decorations(false)?;
+            }
             let handle = app.handle().clone();
             let documents = app.state::<AppState>().documents.clone();
             std::thread::spawn(move || loop {

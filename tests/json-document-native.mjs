@@ -1,6 +1,8 @@
 import { expect } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { setZoom } from './layout-native.mjs';
 
 async function codeText(locator) {
   // Astryx uses content-visibility for long blocks; innerText omits offscreen chunks.
@@ -39,6 +41,40 @@ export async function verifyJsonDocument({ page, directory, artifacts, openFile 
   await page.getByRole('button', { name: '原文', exact: true }).click();
   await expect(page.locator('.view-area pre')).toHaveCount(1);
   expect(JSON.parse(await codeText(page.locator('.view-area pre code')))).toEqual(value);
+  const block = page.locator('.view-area pre');
+  const copy = block.getByRole('button', { name: '复制代码', exact: true });
+  for (const zoom of [80, 100, 150]) {
+    await page.setViewportSize({ width: 1280, height: 840 });
+    await setZoom(page, zoom);
+    for (const width of [720, 1280]) {
+      await page.setViewportSize({ width, height: 840 });
+      await block.scrollIntoViewIfNeeded();
+      await expect(copy).toBeInViewport();
+      const button = await copy.boundingBox();
+      const header = await block.locator('.astryx-code-block-header').boundingBox();
+      const firstLine = await block.locator('[data-line]').first().boundingBox();
+      expect(button.y + button.height).toBeLessThanOrEqual(firstLine.y);
+      expect(button.x + button.width).toBeLessThanOrEqual(header.x + header.width);
+      expect(header.x + header.width - (button.x + button.width)).toBeLessThan(25);
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 840 });
+  await setZoom(page, 100);
+  await copy.click();
+  await expect
+    .poll(
+      () =>
+        execFileSync(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-Command',
+            '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); [Console]::Write((Get-Clipboard -Raw))',
+          ],
+          { encoding: 'utf8', windowsHide: true },
+        ).replace(/\r\n/g, '\n') === original,
+    )
+    .toBe(true);
   await page.screenshot({ path: path.join(artifacts, 'native-json-raw.png') });
   await page.getByRole('button', { name: '第 1 行', exact: true }).click();
   const panel = page.getByRole('complementary', { name: '行详情' });

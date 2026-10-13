@@ -19,6 +19,9 @@ import { verifyInspector } from './inspector-native.mjs';
 import { verifyJsonDocument } from './json-document-native.mjs';
 import { verifySidebarCollapse } from './collapse-native.mjs';
 import { verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
+import { verifyTraceNavigation } from './trace-navigation-native.mjs';
+import { verifyFileTabs } from './file-tabs-native.mjs';
+import { verifyTitlebar } from './titlebar-native.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { mainBinaryName } = JSON.parse(
@@ -178,7 +181,7 @@ try {
     },
   });
   checks.push(
-    'two-row toolbar, column visibility during empty search, sidebar preferences at 720/1280 widths and 100/150% zoom',
+    'two-row toolbar, column visibility during empty search, sidebar preferences and pinned inspect buttons at horizontal start/middle/end, 720/1280 widths and 80/100/150% zoom',
   );
   await verifySidebarCollapse(page, artifacts);
   checks.push(
@@ -646,6 +649,44 @@ try {
   });
   checks.push(
     'English/Chinese live switching, preserved pagination/expansion/unfinished draft, real 6001-record complete-file save with untouched CRLF/blank lines, persisted preferences and System reset',
+  );
+  await verifyTraceNavigation({
+    page,
+    directory,
+    artifacts,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    'session first-screen next arrow, rapid clicks, keyboard navigation, manual scrolling, filtered boundaries, both sort orders and 720/1280 widths target actual messages without follow resets',
+  );
+  await verifyFileTabs({
+    page,
+    directory,
+    artifacts,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    'browser-style file tabs: upper rounding, square lower corners, hover/selection, truncated filenames and separate close targets in both themes at 720/1280 widths and 80/100/150% zoom',
+  );
+  expect(errors).toEqual([]);
+  await verifyTitlebar({
+    page,
+    directory,
+    artifacts,
+    processId: processHandle.pid,
+    openFile: async (file) => {
+      const child = spawn(exe, [file], { stdio: 'ignore', windowsHide: true });
+      await new Promise((resolve) => child.once('exit', resolve));
+    },
+  });
+  checks.push(
+    '40px titlebar, zoom/themes/narrow modal controls, native drag/resize/maximize/minimize, fullscreen reload, dirty close cancellation and complete 1201-record Rust save',
   );
   expect(errors).toEqual([]);
   console.log(JSON.stringify({ passed: checks, runtimeErrors: errors, artifacts }, null, 2));

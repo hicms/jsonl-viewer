@@ -1,6 +1,11 @@
 import { useI18n } from '../i18n';
 import { useMemo, useState, type ReactNode } from 'react';
-import { SideNav, SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
+import {
+  SideNav,
+  SideNavItem,
+  SideNavSection,
+  SideNavCollapseButton,
+} from '@astryxdesign/core/SideNav';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -92,7 +97,7 @@ export function Explorer({
         minWidth: 180,
         maxWidth: 440,
       }}
-      collapsible
+      collapsible={{ hasButton: false }}
       header={
         <ExpandedSideNavContent>
           <Stack direction="horizontal" justify="between" align="center">
@@ -126,6 +131,11 @@ export function Explorer({
         </Stack>
       }
       footer={<ExpandedSideNavContent>{footer}</ExpandedSideNavContent>}
+      footerIcons={
+        <Stack direction="horizontal" justify="end" width="100%">
+          <SideNavCollapseButton />
+        </Stack>
+      }
     >
       <Stack gap={4} paddingBlock={2}>
         {workspace.state.sessions.length ? (

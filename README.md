@@ -7,16 +7,20 @@ A local desktop tool built with Rust, Tauri 2, React 19, and Astryx for viewing 
 ## Usage
 
 - Open, drag and drop, or double-click `.jsonl` / `.ndjson` files. `.log` and `.txt` files are also read line by line. `.json` files are read as one complete JSON document, including multiline objects and arrays; raw view preserves the original text.
-- Table, tree, raw text, and session views, with search across loaded content, row details, copying, column visibility, and column resizing.
+- Table, tree, raw text, and session views, with search across loaded content, row details, copying, column visibility, and column resizing. Table row detail buttons stay pinned to the right edge while columns scroll horizontally. Raw view copy buttons sit in the top-right header above the text.
 - Row details overlay the right side of the window without shrinking the main content. The panel uses 50% of the window width, up to 960 pixels, and fills the content viewport height. The title, edit/save actions, and copy action stay fixed while the content scrolls. Large drafts use a bounded, scrolling editor.
 - Switching views first displays an Astryx skeleton screen, then builds the data view. Table and tree views show short previews of long text; full JSON is available in row details or expanded rows.
 - Automatically detects STS, Codex, Claude Code, Pi, and Hermes sessions and displays messages, thinking, tool calls and results, models, reasoning effort, and token usage.
 - The desktop sidebar keeps file actions at the top and language, appearance, and zoom at the bottom. In narrow windows, these settings are available by scrolling the navigation drawer. Document save/edit controls sit beside the title; view and column controls sit above full-width search. Column choices persist and remain available while filtering loaded records.
+- The desktop sidebar's collapse/expand button sits at the right edge of its bottom bar.
 - Multiple file tabs, directory browsing, recent files, session sources, and navigation between parent and child sessions.
+- File tabs use a browser-style strip with rounded top corners and square bottom corners. The selected tab joins the content surface; inactive tabs use a subtle hover background. Long filenames truncate with the full name on hover, while close buttons retain their own space.
 - Recent files retain up to 50 entries. The sidebar initially shows 5 entries and can expand to show more. Hovering over or focusing a history entry reveals a trash icon that removes only that entry. Close buttons are always visible on the active file tab and open-file sidebar entries; other files show them on hover or keyboard focus. Unsaved changes prompt for confirmation before closing.
 - Save and error notifications appear at the bottom right. The newest notification sits 80 pixels above the window bottom, independent of application zoom; additional notifications stack upward.
 - File close buttons have no background box on hover or press, and retain a focus outline for keyboard navigation.
 - Session ordering, width, and detail visibility use icon buttons in the main toolbar, with tooltips on hover. The native Windows menu bar is hidden, while menu keyboard shortcuts remain available.
+- Windows uses a 40-pixel title bar integrated with the application actions. Its Astryx controls follow the page theme and retain their size at every content zoom level. Drag empty space to move the window, double-click it to maximize or restore, and use the right-side buttons to minimize, maximize, restore, or close. Closing checks for unsaved drafts. F11 toggles fullscreen; Esc leaves fullscreen before dismissing an open dialog. Window controls remain available in navigation drawers and dialogs; row details start below the title bar. macOS and Linux retain their native window decoration.
+- The session's bottom-right arrows and `[` / `]` keys navigate to the previous or next message in the displayed order. The counter follows the visible message; manual navigation pauses following updates.
 - Session files refresh automatically when they change, with newest-first ordering, message navigation, and controls to pause or resume following updates.
 - Enter edit mode to edit JSON in row details. Valid input is immediately retained as a draft; click Save to write it to disk. Incomplete JSON also triggers an unsaved-changes prompt.
 - Light, dark, and system appearance, using the Astryx Neutral theme, with 80%–150% zoom.
@@ -103,6 +107,7 @@ The tag must match every manifest and lockfile version. No additional publishing
 | `src/workspace/` | Per-file state, drafts, and validation of asynchronous responses |
 | `src/views/` | Table, tree, raw text, session, and row detail views |
 | `src/components/` | File browser, toolbar, and session sources |
+| `src/themes/` | Astryx component theme for the file tab strip; built with the frontend |
 
 All interactive controls use Astryx directly. Custom CSS handles only window dimensions, scroll containers, and data layout. File dialogs, menus, and windows are provided by the native platform. Fonts and styles are bundled with the application, with no runtime CDN dependency.
 

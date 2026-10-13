@@ -15,7 +15,10 @@ export async function openPreferences(page) {
 
 export async function closeNavigation(page) {
   const close = page.getByRole('button', { name: /Close navigation|关闭导航/ });
-  if (await close.isVisible()) await close.click();
+  if (await close.isVisible()) {
+    await close.click();
+    await expect(close).toBeHidden();
+  }
 }
 
 export async function setZoom(page, zoom) {
@@ -57,7 +60,7 @@ export async function verifyLayout({ page, artifacts, directory, openFile, logs 
   await openFile(longFile);
   await expect(page.getByRole('heading', { name: longName, exact: true })).toBeVisible();
 
-  for (const zoom of [100, 150]) {
+  for (const zoom of [80, 100, 150]) {
     await page.setViewportSize({ width: 1280, height: 840 });
     await setZoom(page, zoom);
     for (const width of [1280, 720]) {
@@ -97,13 +100,34 @@ export async function verifyLayout({ page, artifacts, directory, openFile, logs 
       const root = await page.locator('.workspace').boundingBox();
       expect(root.x + root.width).toBeLessThanOrEqual(width + 1);
       const inspect = page.getByRole('button', { name: '查看第 1 行', exact: true });
-      await inspect.scrollIntoViewIfNeeded();
-      await expect(inspect).toBeInViewport();
-      await inspect.click();
-      await expect(page.getByRole('complementary', { name: '行详情' })).toContainText(
-        'long path layout',
-      );
-      await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+      const scroller = page.locator('.astryx-table-scroll-wrapper');
+      expect(
+        await scroller.evaluate((node) => node.scrollWidth - node.clientWidth),
+      ).toBeGreaterThan(1000);
+      for (const fraction of [0, 0.5, 1]) {
+        await scroller.evaluate((node, fraction) => {
+          node.scrollLeft = (node.scrollWidth - node.clientWidth) * fraction;
+        }, fraction);
+        await expect(inspect).toBeInViewport();
+        await expect
+          .poll(async () => {
+            const edge = await scroller.boundingBox();
+            const cell = await inspect.locator('xpath=ancestor::td').boundingBox();
+            return Math.abs(cell.x + cell.width - (edge.x + edge.width));
+          })
+          .toBeLessThanOrEqual(2);
+        const scrollLeft = await scroller.evaluate((node) => node.scrollLeft);
+        if (fraction === 0)
+          await page.screenshot({
+            path: path.join(artifacts, `native-table-pinned-${width}-${zoom}.png`),
+          });
+        await inspect.click();
+        await expect(page.getByRole('complementary', { name: '行详情' })).toContainText(
+          'long path layout',
+        );
+        expect(await scroller.evaluate((node) => node.scrollLeft)).toBe(scrollLeft);
+        await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+      }
       await page.screenshot({ path: path.join(artifacts, `native-layout-${width}-${zoom}.png`) });
     }
   }

@@ -13,21 +13,22 @@ import { Theme } from '@astryxdesign/core/theme';
 import { neutralTheme } from '@astryxdesign/theme-neutral/built';
 import { AppShell } from '@astryxdesign/core/AppShell';
 import { TopNav, TopNavHeading } from '@astryxdesign/core/TopNav';
-import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Button } from '@astryxdesign/core/Button';
-import { IconButton } from '@astryxdesign/core/IconButton';
 import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 import { Text } from '@astryxdesign/core/Text';
 import { Heading } from '@astryxdesign/core/Heading';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { ToastViewport } from '@astryxdesign/core/Toast';
-import { FileJson, FolderOpen, MessagesSquare, X, History } from 'lucide-react';
+import { FileJson, FolderOpen, MessagesSquare, History } from 'lucide-react';
 import appLogo from '../src-tauri/icons/icon.svg';
 import { WorkspacePreferences } from './components/WorkspacePreferences';
+import { WindowControls } from './components/WindowControls';
+import { useWindowChrome } from './lib/useWindowChrome';
 import { tableFields, updateHiddenColumns } from './lib/tableColumns';
 import { Explorer } from './components/Explorer';
+import { FileTabs } from './components/FileTabs';
 import { FileToolbar } from './components/FileToolbar';
 import { TableView } from './views/TableView';
 import { TreeView } from './views/TreeView';
@@ -69,6 +70,7 @@ function Application({
 }) {
   const { t, locale } = useI18n();
   const workspace = useWorkspace();
+  const chrome = useWindowChrome(workspace.report);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [zoom, setZoom] = usePreference('zoom', 1);
   const [hiddenColumns, setHiddenColumns] = usePreference<string[]>('hiddenColumns', []);
@@ -212,17 +214,21 @@ function Application({
       else workspace.report(t('sessionNotFound', { id }));
     }
   }
-  const activeIndex = workspace.state.sessions.findIndex(
-    (s) => s.snapshot.id === workspace.state.activeId,
-  );
   return (
-    <div className="app-root" style={{ zoom, '--app-zoom': zoom } as CSSProperties}>
+    <div
+      className="app-root"
+      data-custom-titlebar={chrome.custom || undefined}
+      data-fullscreen={chrome.fullscreen || undefined}
+      style={{ zoom, '--app-zoom': zoom } as CSSProperties}
+    >
       <AppShell
         variant="section"
         contentPadding={0}
         style={{ height: `calc(100dvh / ${zoom})` }}
         topNav={
           <TopNav
+            className={chrome.custom ? 'window-titlebar' : undefined}
+            data-tauri-drag-region={chrome.custom ? 'deep' : undefined}
             label={t('applicationActions')}
             heading={
               <TopNavHeading
@@ -231,7 +237,7 @@ function Application({
               />
             }
             endContent={
-              <Stack direction="horizontal" gap={2} align="center">
+              <Stack direction="horizontal" gap={2} align="center" data-tauri-drag-region="false">
                 <MoreMenu
                   label={t('recentFiles')}
                   icon={<History size={18} />}
@@ -252,8 +258,10 @@ function Application({
                   label={t('openFile')}
                   icon={<FolderOpen size={16} />}
                   variant="primary"
+                  size={chrome.custom ? 'sm' : 'md'}
                   onClick={() => void workspace.open()}
                 />
+                <WindowControls chrome={chrome} />
               </Stack>
             }
           />
@@ -279,59 +287,7 @@ function Application({
       >
         <div className="workspace">
           {workspace.state.sessions.length ? (
-            <Stack direction="horizontal" align="center" className="file-tabs">
-              <TabList
-                value={workspace.state.activeId ?? ''}
-                onChange={(id) => workspace.dispatch({ type: 'activate', id })}
-                hasDivider
-                aria-label={t('openFiles')}
-                className="tabs-grow"
-              >
-                {workspace.state.sessions.map((session) => (
-                  <div key={session.snapshot.id} className="file-tab file-item">
-                    <Tab
-                      value={session.snapshot.id}
-                      label={`${session.snapshot.name}${Object.keys(session.edits).length ? ' •' : ''}`}
-                      icon={<FileJson size={15} />}
-                      endContent={<span className="file-tab-action-space" aria-hidden="true" />}
-                    />
-                    <IconButton
-                      label={t('closeFile', { name: session.snapshot.name })}
-                      icon={<X size={14} />}
-                      variant="ghost"
-                      size="sm"
-                      className="file-close"
-                      onClick={() => requestClose([session.snapshot.id])}
-                    />
-                  </div>
-                ))}
-              </TabList>
-              <MoreMenu
-                label={t('closeActions')}
-                items={[
-                  {
-                    label: t('closeOthers'),
-                    onClick: () =>
-                      requestClose(
-                        workspace.state.sessions
-                          .filter((s) => s !== active)
-                          .map((s) => s.snapshot.id),
-                      ),
-                  },
-                  {
-                    label: t('closeRight'),
-                    onClick: () =>
-                      requestClose(
-                        workspace.state.sessions.slice(activeIndex + 1).map((s) => s.snapshot.id),
-                      ),
-                  },
-                  {
-                    label: t('closeAll'),
-                    onClick: () => requestClose(workspace.state.sessions.map((s) => s.snapshot.id)),
-                  },
-                ]}
-              />
-            </Stack>
+            <FileTabs workspace={workspace} onClose={requestClose} />
           ) : null}
           {active ? (
             <>

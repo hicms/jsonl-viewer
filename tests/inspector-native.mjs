@@ -81,9 +81,9 @@ export async function verifyInspector({ page, directory, artifacts, openFile }) 
         })
         .toEqual({
           x: width - Math.min(width / 2, 960),
-          y: 0,
+          y: 40,
           width: Math.min(width / 2, 960),
-          height: 840,
+          height: 800,
         });
       await onlyContentScrolls();
       await panel.getByRole('button', { name: '原文', exact: true }).click();

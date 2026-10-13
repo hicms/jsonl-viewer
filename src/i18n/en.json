@@ -1,5 +1,9 @@
 {
   "applicationActions": "Application actions",
+  "minimizeWindow": "Minimize window",
+  "maximizeWindow": "Maximize window",
+  "restoreWindow": "Restore window",
+  "closeWindow": "Close window",
   "openFile": "Open file",
   "openFolder": "Open folder",
   "recentFiles": "Recent files",

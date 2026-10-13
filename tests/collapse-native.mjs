@@ -8,11 +8,25 @@ export async function verifySidebarCollapse(page, artifacts) {
   const expand = page.getByRole('button', { name: '展开侧边栏', exact: true });
   const search = page.getByRole('textbox', { name: '搜索已加载内容', exact: true });
   await search.fill('服务已启动');
+  async function checkRightAligned(button, zoom) {
+    await expect
+      .poll(async () => {
+        const bounds = await sidebar.boundingBox();
+        const control = await button.boundingBox();
+        return bounds.x + bounds.width - (control.x + control.width);
+      })
+      .toBeLessThanOrEqual((24 * zoom) / 100);
+    const bounds = await sidebar.boundingBox();
+    const control = await button.boundingBox();
+    expect(control.x + control.width).toBeLessThanOrEqual(bounds.x + bounds.width);
+    if (bounds.width > 100) expect(control.x).toBeGreaterThan(bounds.x + bounds.width / 2);
+  }
   async function checkCollapsed(zoom) {
     await expect(expand).toBeVisible();
     await expect
       .poll(async () => (await sidebar.boundingBox()).width)
       .toBeCloseTo((48 * zoom) / 100, 1);
+    await checkRightAligned(expand, zoom);
     await expect(sidebar.getByRole('heading')).toHaveCount(0);
     await expect(sidebar.getByRole('combobox')).toHaveCount(0);
     const bounds = await sidebar.boundingBox();
@@ -28,12 +42,14 @@ export async function verifySidebarCollapse(page, artifacts) {
     await page.setViewportSize({ width: 1280, height: 840 });
     await setZoom(page, zoom);
     const width = (await sidebar.boundingBox()).width;
+    await checkRightAligned(collapse, zoom);
     await collapse.click();
     await checkCollapsed(zoom);
     await page.screenshot({ path: path.join(artifacts, `native-sidebar-collapsed-${zoom}.png`) });
     await expand.focus();
     await page.keyboard.press('Enter');
     await expect.poll(async () => (await sidebar.boundingBox()).width).toBe(width);
+    await checkRightAligned(collapse, zoom);
     await expect(sidebar.getByRole('combobox', { name: '语言', exact: true })).toBeVisible();
   }
   await setZoom(page, 100);
