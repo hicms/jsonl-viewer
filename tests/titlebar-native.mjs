@@ -34,10 +34,7 @@ export async function verifyTitlebar({ page, directory, artifacts, openFile, pro
         native: probe(),
         tauriMinimized: await nativeState('is_minimized'),
         pointer: await page.evaluate(() => window.__captionPointer),
-        controls: await page.locator('.window-controls').evaluate((element) => element.outerHTML),
       });
-      await nativeState('minimize');
-      console.log('Direct native minimize result', probe());
       throw error;
     }
   }

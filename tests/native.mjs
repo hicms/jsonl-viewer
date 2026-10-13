@@ -90,7 +90,12 @@ const port = Number(process.env.JSONL_QA_CDP_PORT ?? 9224);
 const processHandle = spawn(exe, [logs], {
   env: {
     ...process.env,
-    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,
+    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: [
+      `--remote-debugging-port=${port}`,
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+    ].join(' '),
     WEBVIEW2_USER_DATA_FOLDER: path.join(directory, 'profile'),
   },
   stdio: ['ignore', 'pipe', 'pipe'],

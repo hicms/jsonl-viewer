@@ -19,7 +19,8 @@ if ((Get-Item -LiteralPath $policy).GetValueNames() -contains $application) {
     throw "An existing WebView2 policy is already configured for $application."
 }
 try {
-    New-ItemProperty -LiteralPath $policy -Name $application -Value "--remote-debugging-port=$port" -PropertyType String | Out-Null
+    $browserArguments = "--remote-debugging-port=$port --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding"
+    New-ItemProperty -LiteralPath $policy -Name $application -Value $browserArguments -PropertyType String | Out-Null
     npm run test:native
     if ($LASTEXITCODE -ne 0) { throw "Native WebView2 tests failed (exit code $LASTEXITCODE)." }
 } finally {

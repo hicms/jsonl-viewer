@@ -14,7 +14,8 @@ public static class WindowProbe {
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr window);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, IntPtr process);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, IntPtr className, string title);
     [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
     [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint from, uint to, bool attach);
     [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr window);
@@ -31,10 +32,13 @@ public static class WindowProbe {
 }
 '@
 [WindowProbe]::SetThreadDpiAwarenessContext([IntPtr](-4)) | Out-Null
-$viewer = Get-Process -Id $ViewerProcessId
-$viewer.Refresh()
-$handle = $viewer.MainWindowHandle
-if ($handle -eq [IntPtr]::Zero) { throw 'Viewer main window was not found' }
+$handle = [IntPtr]::Zero
+[uint32]$ownerProcessId = 0
+do {
+    $handle = [WindowProbe]::FindWindowEx([IntPtr]::Zero, $handle, [IntPtr]::Zero, 'JSONL Viewer')
+    if ($handle -eq [IntPtr]::Zero) { throw 'Viewer main window was not found' }
+    [WindowProbe]::GetWindowThreadProcessId($handle, [ref]$ownerProcessId) | Out-Null
+} while ($ownerProcessId -ne $ViewerProcessId)
 if ($Action -eq 'restore') {
     [WindowProbe]::ShowWindow($handle, 9) | Out-Null
     [WindowProbe]::SetForegroundWindow($handle) | Out-Null
@@ -52,7 +56,8 @@ if ($Action -eq 'drag') {
     $point.Y = [int](20 * $scale)
     [WindowProbe]::ClientToScreen($handle, [ref]$point) | Out-Null
     $currentThread = [WindowProbe]::GetCurrentThreadId()
-    $foregroundThread = [WindowProbe]::GetWindowThreadProcessId([WindowProbe]::GetForegroundWindow(), [IntPtr]::Zero)
+    [uint32]$foregroundProcessId = 0
+    $foregroundThread = [WindowProbe]::GetWindowThreadProcessId([WindowProbe]::GetForegroundWindow(), [ref]$foregroundProcessId)
     [WindowProbe]::AttachThreadInput($currentThread, $foregroundThread, $true) | Out-Null
     try {
         [WindowProbe]::BringWindowToTop($handle) | Out-Null
@@ -77,7 +82,7 @@ $topPoint = (($rect.Top + 1) -shl 16) -bor (($rect.Left + 200) -band 0xffff)
 $topHit = [WindowProbe]::SendMessage($handle, 0x0084, [IntPtr]::Zero, [IntPtr]$topPoint).ToInt32()
 @{
     handle = $handle.ToInt64()
-    title = $viewer.MainWindowTitle
+    title = 'JSONL Viewer'
     maximized = [WindowProbe]::IsZoomed($handle)
     minimized = [WindowProbe]::IsIconic($handle)
     left = $rect.Left
