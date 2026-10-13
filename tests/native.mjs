@@ -18,7 +18,7 @@ import { openPreferences, closeNavigation, setZoom, verifyLayout } from './layou
 import { verifyInspector } from './inspector-native.mjs';
 import { verifyJsonDocument } from './json-document-native.mjs';
 import { verifySidebarCollapse } from './collapse-native.mjs';
-import { verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
+import { chooseLanguage, verifyAutomaticLanguage, verifyLanguages } from './i18n-native.mjs';
 import { verifyTraceNavigation } from './trace-navigation-native.mjs';
 import { verifyFileTabs } from './file-tabs-native.mjs';
 import { verifyTitlebar } from './titlebar-native.mjs';
@@ -650,6 +650,8 @@ try {
   checks.push(
     'English/Chinese live switching, preserved pagination/expansion/unfinished draft, real 6001-record complete-file save with untouched CRLF/blank lines, persisted preferences and System reset',
   );
+  await chooseLanguage(page, '简体中文');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
   await verifyTraceNavigation({
     page,
     directory,

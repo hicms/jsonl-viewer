@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-async function chooseLanguage(page, name) {
+export async function chooseLanguage(page, name) {
   const selector = page.getByRole('combobox', { name: /^(Language|语言)$/ });
   if (!(await selector.isVisible()))
     await page.getByRole('button', { name: /Open navigation|打开导航/ }).click();
