@@ -52,11 +52,11 @@ npm run desktop:build                  # Release EXE 与 NSIS 安装包
 
 Windows 下，`npm run desktop:build` 生成 `src-tauri/target/release/JSONL Viewer.exe` 和 `src-tauri/target/release/bundle/nsis/JSONL Viewer_2.0.0_x64-setup.exe`。
 
-原生测试在系统临时目录创建测试文件，不修改项目中的样例。请先关闭正在运行的 JSONL Viewer，避免单实例进程接收测试参数。截图默认写入临时目录；可设置 `JSONL_QA_ARTIFACT_DIR` 保存截图。
+原生测试覆盖启动与视图、窗口控制、JSONL 分页与完整文件保存、JSON 整体保存与重开、未保存关闭保护和会话实时追加，使用真实 WebView2 与 Rust 文件读写，并在临时目录创建测试文件。请先关闭正在运行的 JSONL Viewer，避免单实例进程接收测试参数。日志、结果和截图保留在独立的临时证据目录，路径由测试输出；可设置 `JSONL_QA_ARTIFACT_DIR` 指定位置。视觉改动需要针对受影响的主题、缩放和窗口大小进行检查。
 
 ## CI 与发布
 
-GitHub Actions 的 `CI` 工作流在分支推送、Pull Request 和手动运行时检查并打包。`Release` 工作流在推送 `vX.Y.Z` 稳定版本 Tag 时运行相同构建，通过全部检查后发布 GitHub Release。手动运行 `Release` 仅生成预览产物，不创建 Tag 或公开版本。
+GitHub Actions 的 `CI` 工作流在分支推送、Pull Request 和手动运行时检查 Windows x64，包括前端和发布脚本测试、Rust 文件读写测试、Clippy，以及包含 TypeScript 检查和真实 WebView2 冒烟测试的 debug 桌面构建，不生成安装包。`Release` 工作流在推送 `vX.Y.Z` 稳定版本 Tag 时独立执行质量检查及六平台打包，通过后发布 GitHub Release。手动运行 `Release` 仅生成预览产物，不创建 Tag 或公开版本。
 
 | 平台 | 架构 | 安装包 |
 |---|---|---|
@@ -64,11 +64,11 @@ GitHub Actions 的 `CI` 工作流在分支推送、Pull Request 和手动运行�
 | macOS | Intel x64、Apple Silicon ARM64 | `.dmg` |
 | Windows | x64、ARM64 | NSIS `.exe` |
 
-产物名称为 `JSONL-Viewer_<版本>_<平台>-<架构>`，例如 `JSONL-Viewer_2.0.0_windows-arm64-setup.exe`。每次发布包括 8 个安装包和 `SHA256SUMS.txt`；CI 的 `release-preview` Artifact 还包含发布说明。平台、架构和文件名统一定义在 `scripts/release-config.mjs`。
+产物名称为 `JSONL-Viewer_<版本>_<平台>-<架构>`，例如 `JSONL-Viewer_2.0.0_windows-arm64-setup.exe`。每次发布包括 8 个安装包和 `SHA256SUMS.txt`；`Release` 工作流的 `release-preview` Artifact 还包含发布说明。平台、架构和文件名统一定义在 `scripts/release-config.mjs`。
 
 Linux 构建以 Ubuntu 22.04 为基线，AppImage 可能需要 FUSE 2。Windows ARM64 应用使用原生 ARM64 二进制，NSIS 安装器使用 x86 模拟运行。macOS 包使用临时签名，未经过 Apple 公证，首次打开可能需要在“系统设置 → 隐私与安全性”中允许。Windows 安装包未配置代码签名。
 
-CI 在六个平台运行 Rust 文件读写回归与 Clippy，并进行前端类型检查、前端测试和发布脚本回归。Windows 运行真实 WebView2 文件读写回归；Linux/macOS 运行桌面进程启动检查，这不覆盖完整 GUI 或 Finder 交互。
+发布构建在六个平台运行 Rust 文件读写回归，在 Windows x64 运行 Clippy。Tauri 在各平台执行一次前端类型检查与构建。Windows 的两个架构均对 release 可执行文件运行真实 WebView2 冒烟测试；Linux/macOS 运行桌面进程启动检查，这不覆盖完整 GUI 或 Finder 交互。质量检查、全部平台构建和完整产物校验均通过后才会发布。
 
 ### 手动发版
 

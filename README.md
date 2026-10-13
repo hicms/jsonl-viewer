@@ -52,11 +52,11 @@ npm run desktop:build                  # Release EXE and NSIS installer
 
 On Windows, `npm run desktop:build` outputs `src-tauri/target/release/JSONL Viewer.exe` and `src-tauri/target/release/bundle/nsis/JSONL Viewer_2.0.0_x64-setup.exe`.
 
-Native tests create files in the system temporary directory and leave the project's sample files unchanged. Close any running JSONL Viewer instance before testing so that the single-instance process does not receive the test arguments. Screenshots are written to the temporary directory by default; set `JSONL_QA_ARTIFACT_DIR` to choose where to save them.
+Native tests cover startup and views, window controls, JSONL pagination and complete-file saving, JSON document saving and reopening, unsaved-close protection, and live session updates. They use real WebView2 and Rust file I/O with temporary fixtures. Close any running JSONL Viewer instance before testing so that the single-instance process does not receive the test arguments. Logs, results and screenshots are retained in a separate temporary evidence directory printed by the runner; set `JSONL_QA_ARTIFACT_DIR` to choose its location. Visual changes require targeted checks at the affected themes, zoom levels and window sizes.
 
 ## CI and Releases
 
-GitHub Actions runs `CI` on branch pushes, pull requests and manual dispatches. Pushing a stable `vX.Y.Z` tag runs the same checks and builds through `Release`, then publishes a GitHub Release. Manually dispatching `Release` generates preview artifacts only; it does not create a tag or publish a release.
+GitHub Actions runs `CI` on branch pushes, pull requests and manual dispatches. CI checks Windows x64 with frontend and release-tooling tests, Rust file I/O tests, Clippy, and a debug desktop build with TypeScript checks and a real WebView2 smoke test. It does not build installers. Pushing a stable `vX.Y.Z` tag runs independent quality checks and the six-platform package build through `Release`, then publishes a GitHub Release. Manually dispatching `Release` generates preview artifacts only; it does not create a tag or publish a release.
 
 | Platform | Architectures | Installers |
 |---|---|---|
@@ -64,11 +64,11 @@ GitHub Actions runs `CI` on branch pushes, pull requests and manual dispatches. 
 | macOS | Intel x64, Apple Silicon ARM64 | `.dmg` |
 | Windows | x64, ARM64 | NSIS `.exe` |
 
-Assets use `JSONL-Viewer_<version>_<platform>-<architecture>`, for example `JSONL-Viewer_2.0.0_windows-arm64-setup.exe`. Each release contains eight installers and `SHA256SUMS.txt`. The CI `release-preview` artifact also includes release notes. `scripts/release-config.mjs` defines the platforms, architectures and asset names.
+Assets use `JSONL-Viewer_<version>_<platform>-<architecture>`, for example `JSONL-Viewer_2.0.0_windows-arm64-setup.exe`. Each release contains eight installers and `SHA256SUMS.txt`. The `Release` workflow's `release-preview` artifact also includes release notes. `scripts/release-config.mjs` defines the platforms, architectures and asset names.
 
 Linux packages target Ubuntu 22.04 or compatible newer systems; AppImage may require FUSE 2. Windows ARM64 packages contain a native ARM64 app with an x86 NSIS installer. macOS packages are ad-hoc signed without Apple notarization; first launch may require approval in System Settings → Privacy & Security. Windows installers do not have a code signing certificate configured.
 
-CI runs Rust file I/O regressions and Clippy on all six platforms, plus frontend type checks, frontend tests and release tooling regressions. Windows runs real WebView2 file I/O tests. Linux/macOS use a desktop process startup smoke check, which does not cover complete GUI or Finder interactions.
+Release builds run Rust file I/O regressions on all six platforms and Clippy on Windows x64. Tauri runs the frontend type check and build once per platform. Both Windows architectures run the real WebView2 smoke test against their release executable. Linux/macOS use a desktop process startup smoke check, which does not cover complete GUI or Finder interactions. Publication requires the quality checks, all platform builds and verification of the complete asset set to pass.
 
 ### Publish Manually
 

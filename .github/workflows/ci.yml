@@ -14,5 +14,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    uses: ./.github/workflows/build.yml
+  check:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned Rust toolchain
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+        with:
+          workspaces: src-tauri
+          key: ci-windows-x64
+          cache-on-failure: true
+      - run: npm ci
+      - run: node scripts/release-version.mjs check
+      - run: npm test
+      - run: npm run test:release
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Build desktop and check frontend types
+        run: npm run tauri -- build --debug --no-bundle --ci -- --locked
+      - name: Install current WebView2 runtime
+        run: ./scripts/ensure-webview2.ps1
+      - name: Windows WebView2 smoke
+        run: ./tests/native-ci.ps1
+        env:
+          JSONL_QA_EXE: ${{ github.workspace }}/src-tauri/target/debug/JSONL Viewer.exe
+          JSONL_QA_ARTIFACT_DIR: ${{ runner.temp }}/jsonl-native-artifacts
+      - name: Upload native test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-tests-windows-x64
+          path: ${{ runner.temp }}/jsonl-native-artifacts
+          if-no-files-found: ignore
+          retention-days: 7

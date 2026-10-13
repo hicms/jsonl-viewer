@@ -36,7 +36,6 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:release
-      - run: npm run build
 
   desktop:
     name: ${{ matrix.label }}
@@ -67,16 +66,17 @@ jobs:
           key: ${{ matrix.id }}
           cache-on-failure: true
       - run: npm ci
-      - run: npm run build
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
-      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Rust lint
+        if: matrix.id == 'windows-x64'
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
       - name: Build installers
         run: npm run desktop:build -- --ci --target "${{ matrix.target }}" -- --locked
       - name: Install current WebView2 runtime
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/ensure-webview2.ps1
-      - name: Windows WebView2 regression
+      - name: Windows WebView2 smoke
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./tests/native-ci.ps1
